@@ -1,0 +1,6 @@
+#!/bin/bash
+
+emcc $1 -o cvmfs.html \
+    --js-library library_fs.js \
+    --js-library library_cvmfs.js \
+    -s FORCE_FILESYSTEM=1
