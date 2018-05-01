@@ -2,5 +2,4 @@
 
 emcc $* -o cvmfs.html \
     --js-library library_fs.js \
-    --js-library library_cvmfs.js \
-    -s FORCE_FILESYSTEM=1
+    --js-library library_cvmfs.js

@@ -3,7 +3,6 @@ mergeInto(LibraryManager.library, {
   $CVMFS: {
     ops_table: null,
     mount: function(mount) {
-      console.log("cvmfs mounted!");
       return CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
     },
     createNode: function(parent, name, mode) {
@@ -14,7 +13,8 @@ mergeInto(LibraryManager.library, {
               getattr: CVMFS.node_ops.getattr,
               lookup: CVMFS.node_ops.lookup,
               readdir: CVMFS.node_ops.readdir,
-            }
+            },
+            stream: {}
           },
           file: {
             node: {
