@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 void test_open() {
     int fd;
@@ -36,4 +37,6 @@ int main() {
 
     test_open();
     test_readdir();
+
+    return 0;
 }

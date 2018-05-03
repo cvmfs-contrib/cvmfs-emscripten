@@ -1,5 +1,7 @@
 #!/bin/bash
 
-emcc $* -o cvmfs.html \
-    --js-library library_fs.js \
-    --js-library library_cvmfs.js
+SRC_DIR="$( cd "$( dirname "$0" )" && pwd )"
+
+emcc $* \
+    --js-library $SRC_DIR/library_fs.js \
+    --js-library $SRC_DIR/library_cvmfs.js
