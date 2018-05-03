@@ -1,0 +1,23 @@
+sudo: required
+
+services:
+  - docker
+
+language: node_js
+node_js:
+  - "8"
+
+cache:
+  directories:
+    - "node_modules"
+
+before_install:
+  - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten-slim bash
+  - npm install puppeteer
+    
+script:
+  - docker exec -it emscripten bash tests/run.sh --no-test
+  - ./tests/run.sh --no-compile
+
+notifications:
+  email: false
