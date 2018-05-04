@@ -11,12 +11,13 @@
 
       var Module = {
         print: function(text) {
-          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-          console.log(text);
+          // for now, we have no use for printing non-error messages
         },
         printErr: function(text) {
-          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-          console.error(text);
+          if (arguments.length > 1) {
+            text = Array.prototype.slice.call(arguments).join(' ');
+          }
+          window._cvmfs_printErr(text)
         },
         onExit: puppet_notify_exit // when 'main' returns
       };

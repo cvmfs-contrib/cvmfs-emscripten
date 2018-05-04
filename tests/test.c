@@ -3,8 +3,6 @@
 #include <emscripten.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 void test_open() {
     int fd;
@@ -19,13 +17,13 @@ void test_open() {
 
 void test_readdir() {
     DIR *dir;
-    struct dirent *dp;
+    struct dirent *ent;
 
     dir = opendir("/cvmfs");
     assert(dir != NULL);
 
-    dp = readdir(dir);
-    assert(dp == NULL);
+    ent = readdir(dir);
+    assert(ent == NULL);
     assert(errno == ENOSYS);
 }
 

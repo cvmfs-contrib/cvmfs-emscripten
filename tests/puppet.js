@@ -4,11 +4,13 @@ const puppeteer = require('puppeteer');
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
 
-  // collect all messages sent to browser's console
-  var console_msgs = [];
-  page.on('console', msg => {
-    console_msgs.push(msg._text);
-  });
+  // test_container.html will call window._cvmfs_printErr
+  // whenever the browser JavaScript tries to print an error
+  // message. we collect them as they come and print them later on.
+  const err_msgs = [];
+  await page.exposeFunction('_cvmfs_printErr', text =>
+    err_msgs.push(text)
+  );
 
   // load test page on browser
   const test_file = process.argv[2];
@@ -27,10 +29,9 @@ const puppeteer = require('puppeteer');
   } else {
     console.log('FAILED.');
     console.log('The C/C++ program exited with status ' + exitstatus + '.');
-  }
-  
-  if (console_msgs.length > 0) {
-    console.log(console_msgs.join('\n'));
+    if (err_msgs.length > 0) {
+      console.log(err_msgs.join('\n'));
+    }
   }
 
   // make sure we exit with the same exit status
