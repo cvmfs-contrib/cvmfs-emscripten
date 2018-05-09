@@ -1,9 +1,23 @@
 #!/bin/bash
 
+set -e
+
+COMPILE=1
+TEST=1
+CHROME_EXE=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --no-compile) COMPILE=0 ;;
+        --no-test) TEST=0 ;;
+        --chrome-exe) shift; CHROME_EXE=$1 ;;
+    esac
+    shift
+done
+
 TEST_DIR="$( cd "$( dirname "$0" )" && pwd )"
 SRC_DIR="$( dirname "$TEST_DIR" )"
 
-if [ "$1" != "--no-compile" ]; then
+if [ $COMPILE -eq 1 ]; then
     $SRC_DIR/emcc-cvmfs \
         -o $TEST_DIR/test.html \
         -s NO_EXIT_RUNTIME=0 \
@@ -11,6 +25,6 @@ if [ "$1" != "--no-compile" ]; then
         $TEST_DIR/test.c
 fi
 
-if [ "$1" != "--no-test" ]; then
-    node $TEST_DIR/puppet.js $TEST_DIR/test.html
+if [ $TEST -eq 1 ]; then
+    node $TEST_DIR/puppet.js $TEST_DIR/test.html $CHROME_EXE
 fi

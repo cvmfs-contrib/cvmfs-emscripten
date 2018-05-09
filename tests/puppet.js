@@ -1,7 +1,15 @@
 const puppeteer = require('puppeteer');
 
+process.on('unhandledRejection', err => { throw err; });
+
 (async () => {
-  const browser = await puppeteer.launch();
+  const options = {};
+  const chrome_exe = process.argv[3];
+  if (chrome_exe !== undefined) {
+    options.executablePath = chrome_exe;
+  }
+
+  const browser = await puppeteer.launch(options);
   const page = await browser.newPage();
 
   // test_container.html will call window._cvmfs_printErr
