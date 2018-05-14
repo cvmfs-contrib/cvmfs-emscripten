@@ -46,7 +46,7 @@ cvmfs.fetcher.parseManifest = function(manifest_raw, repo_name) {
         manifest.repository_name = tail;
         break;
       case 'R':
-        if (md5('') !== tail) return undefined;
+        if (tail !== KJUR.crypto.Util.md5('')) return undefined;
         manifest.root_hash = tail;
         break;
       case 'S':

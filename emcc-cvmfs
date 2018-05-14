@@ -9,4 +9,4 @@ emcc $* \
     --pre-js $CVMFS_DIR/cvmfs.js --pre-js $CVMFS_DIR/fetcher.js --pre-js $CVMFS_DIR/repo.js \
     --js-library $EMSCRIPTEN_LIB_DIR/library_fs.js \
     --js-library $EMSCRIPTEN_LIB_DIR/library_cvmfs.js \
-    --pre-js $THIRD_PARTY_DIR/md5.min.js --pre-js $THIRD_PARTY_DIR/jsrsasign-jwths-min.js
+    --pre-js $THIRD_PARTY_DIR/jsrsasign-all-min.js
