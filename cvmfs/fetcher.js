@@ -13,55 +13,69 @@ cvmfs.fetcher.downloadManifest = function(repo_url) {
 
 cvmfs.fetcher.parseManifest = function(manifest_raw, repo_name) {
   const manifest = {};
-  const lines = manifest_raw.split('\n');
-  for (var line of lines) {
-    if (line === '--') break;
+  const metadata_digest = new KJUR.crypto.MessageDigest({alg: 'sha1', prov: 'cryptojs'});
+  var metadata_hash;
 
-    const first_char = line.charAt(0);
-    line = line.substring(1);
-    switch (first_char) {
+  const lines = manifest_raw.split('\n');
+  for (const i in lines) {
+    const line = lines[i];
+    const head = line.charAt(0);
+    const tail = line.substring(1);
+
+    switch (head) {
       case 'B':
-        manifest.catalog_size = parseInt(line);
+        manifest.catalog_size = parseInt(tail);
         break;
       case 'C':
-        manifest.catalog_hash = line;
+        manifest.catalog_hash = tail;
         break;
       case 'D':
-        manifest.ttl = parseInt(line);
+        manifest.ttl = parseInt(tail);
         break;
       case 'G':
-        manifest.garbage_collectable = (line === 'yes');
+        manifest.garbage_collectable = (tail === 'yes');
         break;
       case 'H':
-        manifest.history_hash = line;
+        manifest.history_hash = tail;
         break;
       case 'M':
-        manifest.metadata_hash = line;
+        manifest.metadata_hash = tail;
         break;
       case 'N':
-        if (line !== repo_name) return undefined;
-        manifest.repository_name = line;
+        if (tail !== repo_name) return undefined;
+        manifest.repository_name = tail;
         break;
       case 'R':
-        if (md5('') !== line) return undefined;
-        manifest.root_hash = line;
+        if (md5('') !== tail) return undefined;
+        manifest.root_hash = tail;
         break;
       case 'S':
-        manifest.revision = parseInt(line);
+        manifest.revision = parseInt(tail);
         break;
       case 'T':
-        manifest.published_timestamp = parseInt(line);
+        manifest.published_timestamp = parseInt(tail);
         break;
       case 'X':
-        manifest.certificate_hash = line;
+        manifest.certificate_hash = tail;
         break;
     }
+
+    if (head === '-') {
+      const j = (parseInt(i) + 1).toString();
+      metadata_hash = lines[j];
+      break;
+    }
+
+    metadata_digest.updateString(line + '\n')
   }
 
   if (manifest.catalog_hash === undefined ||
       manifest.root_hash === undefined ||
       manifest.ttl === undefined ||
       manifest.revision === undefined) return undefined;
+
+  if (metadata_hash !== metadata_digest.digest()) return undefined;
+
   return manifest;
 };
 
