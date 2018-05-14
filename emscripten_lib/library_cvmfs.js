@@ -3,6 +3,13 @@ mergeInto(LibraryManager.library, {
   $CVMFS: {
     ops_table: null,
     mount: function(mount) {
+      const base_url = 'http://hepvm.cern.ch/cvmfs';
+      const repo_name = 'emscripten.cvmfs.io';
+      const repo = new cvmfs.repo(base_url, repo_name);
+
+      const manifest = repo.getManifest();
+      console.log(manifest);
+
       return CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
     },
     createNode: function(parent, name, mode) {
@@ -69,4 +76,3 @@ mergeInto(LibraryManager.library, {
     }
   }
 });
-

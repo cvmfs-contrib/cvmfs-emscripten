@@ -1,7 +1,12 @@
 #!/bin/bash
 
 SRC_DIR="$( cd "$( dirname "$0" )" && pwd )"
+CVMFS_DIR=$SRC_DIR/cvmfs
+EMSCRIPTEN_LIB_DIR=$SRC_DIR/emscripten_lib
+THIRD_PARTY_DIR=$SRC_DIR/third_party
 
 emcc $* \
-    --js-library $SRC_DIR/library_fs.js \
-    --js-library $SRC_DIR/library_cvmfs.js
+    --pre-js $CVMFS_DIR/cvmfs.js --pre-js $CVMFS_DIR/fetcher.js --pre-js $CVMFS_DIR/repo.js \
+    --js-library $EMSCRIPTEN_LIB_DIR/library_fs.js \
+    --js-library $EMSCRIPTEN_LIB_DIR/library_cvmfs.js \
+    --pre-js $THIRD_PARTY_DIR/md5.min.js
