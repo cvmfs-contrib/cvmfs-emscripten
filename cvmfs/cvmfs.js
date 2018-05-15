@@ -1,3 +1,4 @@
 const cvmfs = {
-  fetcher: {}
+  fetcher: {},
+  util: {}
 };

@@ -1,6 +1,7 @@
 cvmfs.fetcher.download = function(url) {
   const request = new XMLHttpRequest();
   request.open('GET', url, false);
+  request.overrideMimeType("text/plain; charset=x-user-defined");
   request.send(null);
 
   if (request.status === 200) return request.responseText;
@@ -16,12 +17,21 @@ cvmfs.fetcher.downloadWhitelist = function(repo_url) {
   return cvmfs.fetcher.download(url);
 };
 
-cvmfs.fetcher.parseManifest = function(manifest_raw, repo_name) {
+cvmfs.fetcher.downloadChunk = function(data_url, hash, suffix='') {
+  const url = [data_url, hash.substr(0, 2), '/', hash.substr(2), suffix].join('');
+  return this.download(url);
+};
+
+cvmfs.fetcher.downloadCertificate = function(data_url, hash) {
+  return this.downloadChunk(data_url, hash, 'X');
+};
+
+cvmfs.fetcher.parseManifest = function(data, repo_name) {
   const manifest = {};
   const metadata_digest = new KJUR.crypto.MessageDigest({alg: 'sha1', prov: 'cryptojs'});
   var metadata_hash;
 
-  const lines = manifest_raw.split('\n');
+  const lines = data.split('\n');
   for (const i in lines) {
     const line = lines[i];
     const head = line.charAt(0);
@@ -44,7 +54,7 @@ cvmfs.fetcher.parseManifest = function(manifest_raw, repo_name) {
         manifest.history_hash = tail;
         break;
       case 'M':
-        manifest.metadata_hash = tail;
+        manifest.json_hash = tail;
         break;
       case 'N':
         if (tail !== repo_name) return undefined;
@@ -84,8 +94,7 @@ cvmfs.fetcher.parseManifest = function(manifest_raw, repo_name) {
   return manifest;
 };
 
-cvmfs.fetcher.fetchManifest = function(base_url, repo_name) {
-  const repo_url = base_url + '/' + repo_name;
+cvmfs.fetcher.fetchManifest = function(repo_url, repo_name) {
   const manifest_raw = cvmfs.fetcher.downloadManifest(repo_url);
   return cvmfs.fetcher.parseManifest(manifest_raw, repo_name);
 };
@@ -114,8 +123,23 @@ cvmfs.fetcher.parseWhitelist = function(data, repo_name) {
   return whitelist;
 };
 
-cvmfs.fetcher.fetchWhitelist = function(base_url, repo_name) {
-  const repo_url = base_url + '/' + repo_name;
+cvmfs.fetcher.fetchWhitelist = function(repo_url, repo_name) {
   const data = cvmfs.fetcher.downloadWhitelist(repo_url);
   return cvmfs.fetcher.parseWhitelist(data, repo_name);
+};
+
+cvmfs.fetcher.fetchCertificate = function(data_url, cert_hash) {
+  const data = cvmfs.fetcher.downloadCertificate(data_url, cert_hash);
+
+  const data_hex = cvmfs.util.stringToHex(data);
+  const data_hash = KJUR.crypto.Util.hashHex(data_hex, 'sha1');
+  if (data_hash !== cert_hash) return undefined;
+
+  const data_deflated = pako.inflate(data);
+  const decoder = new TextDecoder("utf-8");
+  const pem = decoder.decode(data_deflated);
+
+  const certificate = new X509();
+  certificate.readCertPEM(pem);
+  return certificate;
 };

@@ -9,8 +9,10 @@ mergeInto(LibraryManager.library, {
 
       const manifest = repo.getManifest();
       const whitelist = repo.getWhitelist();
+      const certificate = repo.getCertificate();
       console.log(manifest);
       console.log(whitelist);
+      console.log(certificate);
 
       return CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
     },
