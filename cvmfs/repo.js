@@ -5,6 +5,11 @@ cvmfs.repo = function(base_url, repo_name) {
   this._manifest = cvmfs.fetcher.fetchManifest(this._repo_url, repo_name);
   this._whitelist = cvmfs.fetcher.fetchWhitelist(this._repo_url, repo_name);
   this._certificate = cvmfs.fetcher.fetchCertificate(this._data_url, this._manifest.certificate_hash);
+
+  const signature = new KJUR.crypto.Signature({alg: 'SHA1withRSA'});
+  signature.init(this._certificate.getPublicKey());
+  signature.updateString(this._manifest.metadata_hash);
+  if (!signature.verify(this._manifest.signature_hex)) return undefined;
 };
 
 cvmfs.repo.prototype = {

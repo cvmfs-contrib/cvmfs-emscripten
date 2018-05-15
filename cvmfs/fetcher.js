@@ -29,7 +29,6 @@ cvmfs.fetcher.downloadCertificate = function(data_url, hash) {
 cvmfs.fetcher.parseManifest = function(data, repo_name) {
   const manifest = {};
   const metadata_digest = new KJUR.crypto.MessageDigest({alg: 'sha1', prov: 'cryptojs'});
-  var metadata_hash;
 
   const lines = data.split('\n');
   for (const i in lines) {
@@ -77,7 +76,7 @@ cvmfs.fetcher.parseManifest = function(data, repo_name) {
 
     if (head === '-') {
       const j = (parseInt(i) + 1).toString();
-      metadata_hash = lines[j];
+      manifest.metadata_hash = lines[j];
       break;
     }
 
@@ -89,7 +88,10 @@ cvmfs.fetcher.parseManifest = function(data, repo_name) {
       manifest.ttl === undefined ||
       manifest.revision === undefined) return undefined;
 
-  if (metadata_hash !== metadata_digest.digest()) return undefined;
+  if (manifest.metadata_hash !== metadata_digest.digest()) return undefined;
+
+  const signature = data.substr(data.search('-') + 3 /*(--\n)*/ + 40 /*(SHA1 hex len)*/ + 1 /*(\n)*/);
+  manifest.signature_hex = cvmfs.util.stringToHex(signature);
 
   return manifest;
 };
@@ -101,7 +103,7 @@ cvmfs.fetcher.fetchManifest = function(repo_url, repo_name) {
 
 cvmfs.fetcher.parseWhitelist = function(data, repo_name) {
   const metadata = data.substr(0, data.search('-'));
-  const metadata_hash = data.substr(metadata.length + 3 /* --\n */, 40 /*SHA1 hex len*/);
+  const metadata_hash = data.substr(metadata.length + 3 /*(--\n)*/, 40 /*(SHA1 hex len)*/);
   if (metadata_hash !== KJUR.crypto.Util.sha1(metadata)) return undefined;
 
   const whitelist = { metadata_hash: metadata_hash };
