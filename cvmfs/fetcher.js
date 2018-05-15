@@ -122,6 +122,9 @@ cvmfs.fetcher.parseWhitelist = function(data, repo_name) {
 
   whitelist.certificate_fingerprint = lines[3].replace(/\:/g, '').toLowerCase();
 
+  const signature = data.substr(metadata.length + 3 /*(--\n)*/ + 40 /*(SHA1 hex len)*/ + 1 /*(\n)*/);
+  whitelist.signature_hex = cvmfs.util.stringToHex(signature);
+
   return whitelist;
 };
 

@@ -6,6 +6,13 @@ cvmfs.repo = function(base_url, repo_name) {
   this._whitelist = cvmfs.fetcher.fetchWhitelist(this._repo_url, repo_name);
   this._certificate = cvmfs.fetcher.fetchCertificate(this._data_url, this._manifest.certificate_hash);
 
+  /* TODO: verify whitelist signature */
+
+  /* verify certificate fingerprint */
+  const fingerprint = KJUR.crypto.Util.hashHex(this._certificate.hex, 'sha1');
+  if (fingerprint !== this._whitelist.certificate_fingerprint) return undefined;
+
+  /* verify manifest signature */
   const signature = new KJUR.crypto.Signature({alg: 'SHA1withRSA'});
   signature.init(this._certificate.getPublicKey());
   signature.updateString(this._manifest.metadata_hash);

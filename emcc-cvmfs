@@ -6,7 +6,11 @@ EMSCRIPTEN_LIB_DIR=$SRC_DIR/emscripten_lib
 THIRD_PARTY_DIR=$SRC_DIR/third_party
 
 emcc $* \
-    --pre-js $CVMFS_DIR/cvmfs.js --pre-js $CVMFS_DIR/fetcher.js --pre-js $CVMFS_DIR/repo.js --pre-js $CVMFS_DIR/util.js \
-    --js-library $EMSCRIPTEN_LIB_DIR/library_fs.js \
+    --pre-js $CVMFS_DIR/cvmfs.js \
+    --pre-js $CVMFS_DIR/fetcher.js \
+    --pre-js $CVMFS_DIR/repo.js \
+    --pre-js $CVMFS_DIR/util.js \
     --js-library $EMSCRIPTEN_LIB_DIR/library_cvmfs.js \
-    --pre-js $THIRD_PARTY_DIR/jsrsasign-all-min.js --pre-js $THIRD_PARTY_DIR/pako_inflate.min.js
+    --js-library $EMSCRIPTEN_LIB_DIR/library_fs.js \
+    --pre-js $THIRD_PARTY_DIR/jsrsasign-all-min.js \
+    --pre-js $THIRD_PARTY_DIR/pako_inflate.min.js
