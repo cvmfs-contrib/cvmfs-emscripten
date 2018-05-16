@@ -3,7 +3,7 @@ cvmfs.util.repoURL = function(base_url, repo_name) {
 }
 
 cvmfs.util.dataURL = function(base_url, repo_name) {
-  return base_url + '/' + repo_name + '/data/';
+  return base_url + '/' + repo_name + '/data';
 }
 
 cvmfs.util.stringToHex = function(str) {

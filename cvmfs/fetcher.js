@@ -18,7 +18,7 @@ cvmfs.fetcher.downloadWhitelist = function(repo_url) {
 };
 
 cvmfs.fetcher.downloadChunk = function(data_url, hash, suffix='') {
-  const url = [data_url, hash.substr(0, 2), '/', hash.substr(2), suffix].join('');
+  const url = [data_url, '/', hash.substr(0, 2), '/', hash.substr(2), suffix].join('');
   return this.download(url);
 };
 

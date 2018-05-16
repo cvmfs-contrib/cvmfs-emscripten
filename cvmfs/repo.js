@@ -11,7 +11,6 @@ cvmfs.repo = function(base_url, repo_name) {
   /* verify certificate fingerprint */
   const now = new Date();
   if (now >= this._whitelist.expiry_date) return undefined;
-
   const fingerprint = KJUR.crypto.Util.hashHex(this._certificate.hex, 'sha1');
   if (fingerprint !== this._whitelist.certificate_fingerprint) return undefined;
 
