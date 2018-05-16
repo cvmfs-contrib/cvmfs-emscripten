@@ -37,6 +37,9 @@ cvmfs.fetcher.parseManifest = function(data, repo_name) {
     const tail = line.substring(1);
 
     switch (head) {
+      case 'A':
+        manifest.has_alt_catalog_path = (tail === 'yes');
+        break;
       case 'B':
         manifest.catalog_size = parseInt(tail);
         break;
