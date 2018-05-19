@@ -6,7 +6,17 @@ cvmfs.repo = function(base_url, repo_name) {
   this._whitelist = cvmfs.fetcher.fetchWhitelist(this._repo_url, repo_name);
   this._certificate = cvmfs.fetcher.fetchCertificate(this._data_url, this._manifest.certificate_hash);
 
-  /* TODO: verify whitelist signature */
+  /* verify whitelist signature */
+  var whitelist_verified = false;
+  const master_keys = cvmfs.getMasterKeys();
+  for (const key of master_keys) {
+    whitelist_verified = key.verifyRawWithMessageHex(
+      cvmfs.util.stringToHex(this._whitelist.metadata_hash),
+      this._whitelist.signature_hex
+    );
+    if (whitelist_verified) break;
+  }
+  if (!whitelist_verified) return undefined;
 
   /* verify certificate fingerprint */
   const now = new Date();

@@ -1,4 +1,6 @@
 const cvmfs = {
   fetcher: {},
-  util: {}
+  util: {},
+
+  _master_keys: null
 };
