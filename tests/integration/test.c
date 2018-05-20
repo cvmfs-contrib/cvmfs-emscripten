@@ -29,6 +29,8 @@ void test_readdir() {
 
 int main() {
     EM_ASM(
+        window._cvmfs_testname = 'open and readdir';
+
         FS.mkdir('/cvmfs');
         FS.mount(CVMFS, {}, '/cvmfs');
     );

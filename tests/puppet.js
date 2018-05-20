@@ -19,31 +19,36 @@ process.on('unhandledRejection', err => { throw err; });
   await page.exposeFunction('_cvmfs_printErr', text =>
     err_msgs.push(text)
   );
-
+ 
   // load test page on browser
   const test_file = process.argv[2];
   await page.goto('file://' + test_file);
-  
-  process.stdout.write('Testing open and readdir... ');
-  
-  // wait till the C/C++ program exits
-  await page.waitForFunction('window._cvmfs_exited === true');
 
-  // get the exit status
-  const exitstatus = await page.evaluate('window._cvmfs_exitstatus');
+  // print test name
+  await page.waitForFunction('window._cvmfs_testname !== undefined');
+  const testname = await page.evaluate('window._cvmfs_testname');
+  process.stdout.write('Testing ' + testname + '... ');
 
-  if (exitstatus === 0) {
-    console.log('PASSED.');
-  } else {
+  // wait for test to finish
+  await page.waitForFunction('window._cvmfs_test_failed !== undefined');
+  const test_failed = await page.evaluate('window._cvmfs_test_failed');
+
+  if (test_failed) {
     console.log('FAILED.');
-    console.log('The C/C++ program exited with status ' + exitstatus + '.');
     if (err_msgs.length > 0) {
       console.log(err_msgs.join('\n'));
     }
+
+    process.exitCode = -1;
+
+    const exitstatus = await page.evaluate('window._cvmfs_exitstatus');
+    if (exitstatus !== undefined) {
+      console.log('The C/C++ program exited with status ' + exitstatus + '.');
+      process.exitCode = exitstatus;
+    }
+  } else {
+    console.log('PASSED.');
   }
 
-  // make sure we exit with the same exit status
-  process.exitCode = exitstatus;
-  
   await browser.close();
 })();

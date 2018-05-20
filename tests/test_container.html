@@ -1,10 +1,11 @@
 <html>
   <body>
+    <script type='text/javascript' src='../../third_party/chai.js'></script>
     <script type='text/javascript'>
 
       function puppet_notify_exit() {
         window._cvmfs_exitstatus = EXITSTATUS;
-        window._cvmfs_exited = true; // this line *has* to come last
+        window._cvmfs_test_failed = EXITSTATUS !== 0; // this line *has* to come last
       };
 
       window.onerror = puppet_notify_exit; // when a JavaScript exception is thrown
