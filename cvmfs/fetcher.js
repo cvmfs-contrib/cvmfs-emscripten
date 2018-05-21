@@ -111,6 +111,9 @@ cvmfs.fetcher.parseWhitelist = function(data, repo_name) {
   const whitelist = { metadata_hash: metadata_hash };
   const lines = metadata.split('\n');
 
+  whitelist.repository_name = lines[2].substr(1);
+  if (whitelist.repository_name !== repo_name) return undefined;
+
   const expiry_line = lines[1];
   whitelist.expiry_date = new Date(
     parseInt(expiry_line.substr(1, 4)),
@@ -118,9 +121,6 @@ cvmfs.fetcher.parseWhitelist = function(data, repo_name) {
     parseInt(expiry_line.substr(7, 2)),
     parseInt(expiry_line.substr(9, 2))
   );
-
-  whitelist.repository_name = lines[2].substr(1);
-  if (whitelist.repository_name !== repo_name) return undefined;
 
   whitelist.certificate_fingerprint = lines[3].replace(/\:/g, '').toLowerCase();
 
