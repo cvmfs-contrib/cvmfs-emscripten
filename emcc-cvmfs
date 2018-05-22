@@ -6,6 +6,7 @@ EMSCRIPTEN_LIB_DIR=$SRC_DIR/emscripten_lib
 THIRD_PARTY_DIR=$SRC_DIR/third_party
 
 emcc $* \
+    -s WASM=0 \
     --pre-js $THIRD_PARTY_DIR/jsrsasign-all-min.js \
     --pre-js $THIRD_PARTY_DIR/pako_inflate.min.js \
     --pre-js $CVMFS_DIR/cvmfs.js \
