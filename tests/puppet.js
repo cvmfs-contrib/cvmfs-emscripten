@@ -19,7 +19,7 @@ process.on('unhandledRejection', err => { throw err; });
   await page.exposeFunction('_cvmfs_printErr', text =>
     err_msgs.push(text)
   );
- 
+
   // load test page on browser
   const test_file = process.argv[2];
   await page.goto('file://' + test_file);
@@ -41,9 +41,10 @@ process.on('unhandledRejection', err => { throw err; });
 
     process.exitCode = -1;
 
+    // window._cvmfs_exitstatus is only defined for C tests
     const exitstatus = await page.evaluate('window._cvmfs_exitstatus');
     if (exitstatus !== undefined) {
-      console.log('The C/C++ program exited with status ' + exitstatus + '.');
+      console.log('The C program exited with status ' + exitstatus + '.');
       process.exitCode = exitstatus;
     }
   } else {
