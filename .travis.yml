@@ -11,7 +11,7 @@ cache:
   directories:
     - "node_modules"
 
-before_install:
+before_script:
   - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten-slim bash
   - npm install puppeteer
     
