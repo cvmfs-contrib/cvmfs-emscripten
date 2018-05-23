@@ -2,7 +2,7 @@
 
 SRC_DIR="$( cd "$( dirname "$0" )" && pwd )"
 CVMFS_DIR=$SRC_DIR/cvmfs
-EMSCRIPTEN_LIB_DIR=$SRC_DIR/emscripten_lib
+FS_DIR=$SRC_DIR/fs
 THIRD_PARTY_DIR=$SRC_DIR/third_party
 
 emcc $* \
@@ -14,5 +14,5 @@ emcc $* \
     --pre-js $CVMFS_DIR/master_keys.js \
     --pre-js $CVMFS_DIR/repo.js \
     --pre-js $CVMFS_DIR/util.js \
-    --js-library $EMSCRIPTEN_LIB_DIR/library_cvmfs.js \
-    --js-library $EMSCRIPTEN_LIB_DIR/library_fs.js
+    --js-library $FS_DIR/library_cvmfs.js \
+    --js-library $FS_DIR/library_fs.js
