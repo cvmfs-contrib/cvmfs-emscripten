@@ -26,9 +26,12 @@ cvmfs.fetcher.downloadCertificate = function(data_url, hash) {
   return this.downloadChunk(data_url, hash, 'X');
 };
 
+cvmfs.fetcher.downloadCatalog = function(data_url, hash) {
+  return this.downloadChunk(data_url, hash, 'C');
+};
+
 cvmfs.fetcher.parseManifest = function(data, repo_name) {
   const manifest = {};
-  const metadata_digest = new KJUR.crypto.MessageDigest({alg: 'sha1', prov: 'cryptojs'});
 
   const lines = data.split('\n');
   for (const i in lines) {
@@ -44,7 +47,7 @@ cvmfs.fetcher.parseManifest = function(data, repo_name) {
         manifest.catalog_size = parseInt(tail);
         break;
       case 'C':
-        manifest.catalog_hash = tail;
+        manifest.catalog_hash = new cvmfs.util.hash(tail);
         break;
       case 'D':
         manifest.ttl = parseInt(tail);
@@ -53,10 +56,10 @@ cvmfs.fetcher.parseManifest = function(data, repo_name) {
         manifest.garbage_collectable = (tail === 'yes');
         break;
       case 'H':
-        manifest.history_hash = tail;
+        manifest.history_hash = new cvmfs.util.hash(tail);
         break;
       case 'M':
-        manifest.json_hash = tail;
+        manifest.json_hash = new cvmfs.util.hash(tail);
         break;
       case 'N':
         if (tail !== repo_name) return undefined;
@@ -72,17 +75,15 @@ cvmfs.fetcher.parseManifest = function(data, repo_name) {
         manifest.published_timestamp = parseInt(tail);
         break;
       case 'X':
-        manifest.certificate_hash = tail;
+        manifest.certificate_hash = new cvmfs.util.hash(tail);
         break;
     }
 
     if (head === '-') {
       const j = (parseInt(i) + 1).toString();
-      manifest.metadata_hash = lines[j];
+      manifest.metadata_hash = new cvmfs.util.hash(lines[j]);
       break;
     }
-
-    metadata_digest.updateString(line + '\n')
   }
 
   if (manifest.catalog_hash === undefined ||
@@ -90,9 +91,12 @@ cvmfs.fetcher.parseManifest = function(data, repo_name) {
       manifest.ttl === undefined ||
       manifest.revision === undefined) return undefined;
 
-  if (manifest.metadata_hash !== metadata_digest.digest()) return undefined;
+  const metadata = data.substring(0, data.search('--'));
+  const computed_metadata_hash = cvmfs.util.digestString(metadata, manifest.metadata_hash.alg);
+  if (manifest.metadata_hash.hex !== computed_metadata_hash) return undefined;
 
-  const signature = data.substr(data.search('-') + 3 /*(--\n)*/ + 40 /*(SHA1 hex len)*/ + 1 /*(\n)*/);
+  var signature = data.substr(data.search('--') + 3 /*(--\n)*/);
+  signature = signature.substr(signature.search('\n') + 1 /*\n*/);
   manifest.signature_hex = cvmfs.util.stringToHex(signature);
 
   return manifest;
@@ -104,9 +108,13 @@ cvmfs.fetcher.fetchManifest = function(repo_url, repo_name) {
 };
 
 cvmfs.fetcher.parseWhitelist = function(data, repo_name) {
-  const metadata = data.substr(0, data.search('-'));
-  const metadata_hash = data.substr(metadata.length + 3 /*(--\n)*/, 40 /*(SHA1 hex len)*/);
-  if (metadata_hash !== KJUR.crypto.Util.sha1(metadata)) return undefined;
+  const metadata = data.substr(0, data.search('--'));
+  var metadata_hash_str = data.substr(metadata.length + 3 /*(--\n)*/);
+  metadata_hash_str = metadata_hash_str.substr(0, metadata_hash_str.search('\n'));
+
+  const metadata_hash = new cvmfs.util.hash(metadata_hash_str);
+  const computed_metadata_hash = cvmfs.util.digestString(metadata, metadata_hash.alg);
+  if (metadata_hash.hex !== computed_metadata_hash) return undefined;
 
   const whitelist = { metadata_hash: metadata_hash };
   const lines = metadata.split('\n');
@@ -122,9 +130,10 @@ cvmfs.fetcher.parseWhitelist = function(data, repo_name) {
     parseInt(expiry_line.substr(9, 2))
   );
 
-  whitelist.certificate_fingerprint = lines[3].replace(/\:/g, '').toLowerCase();
+  whitelist.certificate_fingerprint = new cvmfs.util.hash(lines[3].replace(/\:/g, '').toLowerCase());
 
-  const signature = data.substr(metadata.length + 3 /*(--\n)*/ + 40 /*(SHA1 hex len)*/ + 1 /*(\n)*/);
+  var signature = data.substr(metadata.length + 3 /*(--\n)*/);
+  signature = signature.substr(signature.search('\n') + 1 /*(\n)*/);
   whitelist.signature_hex = cvmfs.util.stringToHex(signature);
 
   return whitelist;
@@ -136,11 +145,11 @@ cvmfs.fetcher.fetchWhitelist = function(repo_url, repo_name) {
 };
 
 cvmfs.fetcher.fetchCertificate = function(data_url, cert_hash) {
-  const data = cvmfs.fetcher.downloadCertificate(data_url, cert_hash);
+  const data = cvmfs.fetcher.downloadCertificate(data_url, cert_hash.download_handle);
 
   const data_hex = cvmfs.util.stringToHex(data);
-  const data_hash = KJUR.crypto.Util.hashHex(data_hex, 'sha1');
-  if (data_hash !== cert_hash) return undefined;
+  const data_hash = cvmfs.util.digestHex(data_hex, cert_hash.alg);
+  if (data_hash !== cert_hash.hex) return undefined;
 
   const data_deflated = pako.inflate(data);
   const decoder = new TextDecoder("utf-8");
@@ -149,4 +158,15 @@ cvmfs.fetcher.fetchCertificate = function(data_url, cert_hash) {
   const certificate = new X509();
   certificate.readCertPEM(pem);
   return certificate;
+};
+
+cvmfs.fetcher.fetchCatalog = function(data_url, catalog_hash) {
+  const data = cvmfs.fetcher.downloadCatalog(data_url, catalog_hash.download_handle);
+
+  const data_hex = cvmfs.util.stringToHex(data);
+  const data_hash = cvmfs.util.digestHex(data_hex, catalog_hash.alg);
+  if (data_hash !== catalog_hash.hex) return undefined;
+
+  const db_data = pako.inflate(data);
+  return new SQL.Database(db_data);
 };

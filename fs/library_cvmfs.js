@@ -14,6 +14,9 @@ mergeInto(LibraryManager.library, {
       console.log(whitelist);
       console.log(certificate);
 
+      console.log(repo.getCatalogStats());
+      console.log(repo.getCatalogProperties());
+
       return CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
     },
     createNode: function(parent, name, mode) {

@@ -8,7 +8,9 @@ THIRD_PARTY_DIR=$SRC_DIR/third_party
 emcc $* \
     -s WASM=0 \
     --pre-js $THIRD_PARTY_DIR/jsrsasign-all-min.js \
+    --pre-js $THIRD_PARTY_DIR/sha3.js \
     --pre-js $THIRD_PARTY_DIR/pako_inflate.min.js \
+    --pre-js $THIRD_PARTY_DIR/sql.js \
     --pre-js $CVMFS_DIR/cvmfs.js \
     --pre-js $CVMFS_DIR/fetcher.js \
     --pre-js $CVMFS_DIR/master_keys.js \
