@@ -29,12 +29,15 @@ if [ $COMPILE -eq 1 ]; then
     mkdir -p $JS_BUILD_DIR
     mkdir -p $C_BUILD_DIR
 
+    $SRC_DIR/generate-pre.sh
+
     echo -n "Compiling JavaScript tests... "
     for testfile in $JS_DIR/*.js; do
         testfile=$(basename $testfile)
         [ $testfile == "common.js" ] && continue
-        
+
         $SRC_DIR/emcc-cvmfs \
+            -s WASM=0 \
             --post-js $JS_DIR/common.js \
             --post-js $JS_DIR/$testfile \
             --shell-file $TEST_DIR/test_container.html \
@@ -49,6 +52,7 @@ if [ $COMPILE -eq 1 ]; then
         testfile=$(basename $testfile)
 
         $SRC_DIR/emcc-cvmfs \
+            -s WASM=0 \
             -s NO_EXIT_RUNTIME=0 \
             --shell-file $TEST_DIR/test_container.html \
             -o $C_BUILD_DIR/${testfile%*.*}.html \

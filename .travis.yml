@@ -13,7 +13,7 @@ cache:
 
 before_script:
   - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten-slim bash
-  - npm install puppeteer
+  - npm install
     
 script:
   - docker exec -it emscripten bash tests/run.sh --no-test

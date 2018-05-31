@@ -1,1 +1,4 @@
-tests/build
+node_modules/
+package-lock.json
+pre.js
+tests/build/
