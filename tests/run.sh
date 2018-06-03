@@ -56,7 +56,7 @@ if [ $COMPILE -eq 1 ]; then
             -s NO_EXIT_RUNTIME=0 \
             --shell-file $TEST_DIR/test_container.html \
             -o $C_BUILD_DIR/${testfile%*.*}.html \
-            $C_DIR/test.c
+            $C_DIR/$testfile
     done
     echo "DONE"
 fi

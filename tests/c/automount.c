@@ -1,0 +1,18 @@
+#include <assert.h>
+#include <dirent.h>
+#include <emscripten.h>
+#include <errno.h>
+#include <fcntl.h>
+
+int main() {
+    EM_ASM(
+        window._cvmfs_testname = 'automounting';
+    );
+
+    // "/cvmfs" shouldn't be created if repository subdir wasn't accessed
+    assert(open("/cvmfs", O_RDONLY) == -1);
+
+    assert(open("/cvmfs/cvmfs.emscripten.io", O_RDONLY) == -1);
+
+    return 0;
+}
