@@ -2,10 +2,11 @@ mergeInto(LibraryManager.library, {
   $CVMFS__deps: ['$FS'],
   $CVMFS: {
     ops_table: null,
+    mountroot: '/cvmfs',
+    base_url: 'http://hepvm.cern.ch/cvmfs',
     mount: function(mount) {
-      const base_url = 'http://hepvm.cern.ch/cvmfs';
-      const repo_name = 'emscripten.cvmfs.io';
-      const repo = new cvmfs.repo(base_url, repo_name);
+      const repo_name = mount.opts.repo_name;
+      const repo = new cvmfs.repo(this.base_url, repo_name);
 
       const manifest = repo.getManifest();
       const whitelist = repo.getWhitelist();

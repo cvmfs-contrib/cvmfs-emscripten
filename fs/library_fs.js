@@ -78,6 +78,29 @@ mergeInto(LibraryManager.library, {
         return !!p;
       }), false);
 
+      // cvmfs automout?
+      const cvmfs_mountroot = CVMFS.mountroot.substr(1); // '/cvmfs' -> 'cvmfs'
+      if (parts.length > 1 // path has to be /cvmfs/something
+          && parts[0].localeCompare(cvmfs_mountroot) === 0) {
+
+        const repo_name = parts[1];
+        var repo_node;
+        var cvmfs_node = FS.lookupNodeInCache(FS.root, cvmfs_mountroot);
+
+        if (cvmfs_node === null) {
+          cvmfs_node = FS.mkdir_node(FS.root, cvmfs_mountroot);
+          repo_node = FS.mkdir_node(cvmfs_node, repo_name);
+        } else {
+          repo_node = FS.lookupNodeInCache(cvmfs_node, repo_name);
+        }
+
+        if (!FS.isMountpoint(repo_node) && FS.isDir(repo_node.mode)) {
+          const opts = { repo_name: repo_name };
+          const mountpoint = '/' + cvmfs_mountroot;
+          FS.mount_node(CVMFS, opts, mountpoint, false, repo_node);
+        }
+      }
+
       // start at the root
       var current = FS.root;
       var current_path = '/';
@@ -167,11 +190,7 @@ mergeInto(LibraryManager.library, {
         }
       }
     },
-    lookupNode: function(parent, name) {
-      var err = FS.mayLookup(parent);
-      if (err) {
-        throw new FS.ErrnoError(err, parent);
-      }
+    hashGetNode: function(parent, name) {
       var hash = FS.hashName(parent.id, name);
 #if CASE_INSENSITIVE_FS
       name = name.toLowerCase();
@@ -185,8 +204,22 @@ mergeInto(LibraryManager.library, {
           return node;
         }
       }
-      // if we failed to find it in the cache, call into the VFS
-      return FS.lookup(parent, name);
+      return null;
+    },
+    lookupNodeInCache: function(parent, name) {
+      var err = FS.mayLookup(parent);
+      if (err) {
+        throw new FS.ErrnoError(err, parent);
+      }
+      return FS.hashGetNode(parent, name);
+    },
+    lookupNode: function(parent, name) {
+      var node = FS.lookupNodeInCache(parent, name);
+      if (node === null) {
+        // if we failed to find it in the cache, call into the VFS
+        return FS.lookup(parent, name);
+      }
+      return node;  
     },
     createNode: function(parent, name, mode, rdev) {
       if (!FS.FSNode) {
@@ -527,31 +560,31 @@ mergeInto(LibraryManager.library, {
       });
     },
     mount: function(type, opts, mountpoint) {
-      var root = mountpoint === '/';
+      var is_root = mountpoint === '/';
       var pseudo = !mountpoint;
       var node;
 
-      if (root && FS.root) {
+      if (is_root && FS.root) {
         throw new FS.ErrnoError(ERRNO_CODES.EBUSY);
-      } else if (!root && !pseudo) {
-        var lookup = FS.lookupPath(mountpoint, { follow_mount: false });
-
+      } else if (!is_root && !pseudo) {
+        const lookup = FS.lookupPath(mountpoint, { follow_mount: false });
         mountpoint = lookup.path;  // use the absolute path
         node = lookup.node;
 
         if (FS.isMountpoint(node)) {
           throw new FS.ErrnoError(ERRNO_CODES.EBUSY);
         }
-
         if (!FS.isDir(node.mode)) {
           throw new FS.ErrnoError(ERRNO_CODES.ENOTDIR);
         }
       }
-
+      return FS.mount_node(type, opts, mountpoint, is_root, node);
+    },
+    mount_node: function(type, opts, abs_mountpoint, mountpoint_is_root, node) {
       var mount = {
         type: type,
         opts: opts,
-        mountpoint: mountpoint,
+        mountpoint: abs_mountpoint,
         mounts: []
       };
 
@@ -560,7 +593,7 @@ mergeInto(LibraryManager.library, {
       mountRoot.mount = mount;
       mount.root = mountRoot;
 
-      if (root) {
+      if (mountpoint_is_root) {
         FS.root = mountRoot;
       } else if (node) {
         // set as a mountpoint
@@ -619,6 +652,10 @@ mergeInto(LibraryManager.library, {
       if (!name || name === '.' || name === '..') {
         throw new FS.ErrnoError(ERRNO_CODES.EINVAL);
       }
+      return FS.mknod_node(parent, name, mode, dev);
+    },
+    // takes 'parent' node and child 'name' instead of 'path'
+    mknod_node: function(parent, name, mode, dev) {
       var err = FS.mayCreate(parent, name);
       if (err) {
         throw new FS.ErrnoError(err);
@@ -635,11 +672,18 @@ mergeInto(LibraryManager.library, {
       mode |= {{{ cDefine('S_IFREG') }}};
       return FS.mknod(path, mode, 0);
     },
-    mkdir: function(path, mode) {
+    modeForNewDir: function(mode) {
       mode = mode !== undefined ? mode : 511 /* 0777 */;
       mode &= {{{ cDefine('S_IRWXUGO') }}} | {{{ cDefine('S_ISVTX') }}};
       mode |= {{{ cDefine('S_IFDIR') }}};
-      return FS.mknod(path, mode, 0);
+      return mode;
+    },
+    mkdir: function(path, mode) {
+      return FS.mknod(path, FS.modeForNewDir(mode), 0);
+    },
+    // takes 'parent' node and child 'name' instead of 'path'
+    mkdir_node: function(parent, name, mode) {
+      return FS.mknod_node(parent, name, FS.modeForNewDir(mode), 0);
     },
     // Creates a whole directory tree chain if it doesn't yet exist
     mkdirTree: function(path, mode) {

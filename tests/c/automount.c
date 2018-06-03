@@ -12,7 +12,7 @@ int main() {
     // "/cvmfs" shouldn't be created if repository subdir wasn't accessed
     assert(open("/cvmfs", O_RDONLY) == -1);
 
-    assert(open("/cvmfs/cvmfs.emscripten.io", O_RDONLY) == -1);
+    assert(open("/cvmfs/emscripten.cvmfs.io", O_RDONLY) != -1);
 
     return 0;
 }
