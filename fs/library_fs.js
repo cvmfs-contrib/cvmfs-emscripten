@@ -96,7 +96,7 @@ mergeInto(LibraryManager.library, {
 
         if (!FS.isMountpoint(repo_node) && FS.isDir(repo_node.mode)) {
           const opts = { repo_name: repo_name };
-          const mountpoint = '/' + cvmfs_mountroot;
+          const mountpoint = '/' + cvmfs_mountroot + '/' + repo_name;
           FS.mount_node(CVMFS, opts, mountpoint, false, repo_node);
         }
       }
