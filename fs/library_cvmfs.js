@@ -4,9 +4,16 @@ mergeInto(LibraryManager.library, {
     ops_table: null,
     mountroot: '/cvmfs',
     base_url: 'http://hepvm.cern.ch/cvmfs',
+    repos: null,
     mount: function(mount) {
       const repo_name = mount.opts.repo_name;
       const repo = new cvmfs.repo(this.base_url, repo_name);
+
+      if (this.repos === null) {
+        this.repos = new Map();
+      }
+
+      this.repos.set(mount.mountpoint, repo);
 
       const manifest = repo.getManifest();
       const whitelist = repo.getWhitelist();
