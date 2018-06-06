@@ -5,12 +5,12 @@ tests.runTest(function test_parseManifest() {
   const repo_name = 'emscripten.cvmfs.io';
 
   // different metadata hash
-  chai.assert.isUndefined(cvmfs.fetcher.parseManifest(data.replace(/--\n.*\n/, '--\n'), repo_name));
+  chai.assert.isUndefined(cvmfs.retriever.parseManifest(data.replace(/--\n.*\n/, '--\n'), repo_name));
 
   // different repo name
-  chai.assert.isUndefined(cvmfs.fetcher.parseManifest(data, 'something.something.something.darkside'));
+  chai.assert.isUndefined(cvmfs.retriever.parseManifest(data, 'something.something.something.darkside'));
 
-  const manifest = cvmfs.fetcher.parseManifest(data, repo_name);
+  const manifest = cvmfs.retriever.parseManifest(data, repo_name);
   chai.assert.strictEqual(manifest.has_alt_catalog_path, false);
   chai.assert.strictEqual(manifest.catalog_size, 18432);
   chai.assert.strictEqual(manifest.catalog_hash.hex, '34ec515941acb52652ac2c448407caebca2bfe49');
@@ -31,7 +31,7 @@ tests.runTest(function test_parseManifestShake128() {
   const data = tests.readFile('data/cvmfspublished-shake128');
   const repo_name = 'emscripten.cvmfs.io';
 
-  const manifest = cvmfs.fetcher.parseManifest(data, repo_name);
+  const manifest = cvmfs.retriever.parseManifest(data, repo_name);
   chai.assert.strictEqual(manifest.catalog_hash.hex, '08b158e37829afbb15a0d8f78885b91941b16df2');
   chai.assert.strictEqual(manifest.history_hash.hex, 'c0bb8dd94b8b2ccdf7df816e6d1dfd2af07c3ea9');
   chai.assert.strictEqual(manifest.json_hash.hex, 'decf358874358c4f313db997d36a3b8e3d62622e');

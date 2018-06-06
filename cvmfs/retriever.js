@@ -1,4 +1,4 @@
-cvmfs.fetcher.download = function(url) {
+cvmfs.retriever.download = function(url) {
   const request = new XMLHttpRequest();
   request.open('GET', url, false);
   request.overrideMimeType("text/plain; charset=x-user-defined");
@@ -7,30 +7,30 @@ cvmfs.fetcher.download = function(url) {
   if (request.status === 200) return request.responseText;
 };
 
-cvmfs.fetcher.downloadManifest = function(repo_url) {
+cvmfs.retriever.downloadManifest = function(repo_url) {
   const url = repo_url + '/.cvmfspublished';
-  return cvmfs.fetcher.download(url);
+  return cvmfs.retriever.download(url);
 };
 
-cvmfs.fetcher.downloadWhitelist = function(repo_url) {
+cvmfs.retriever.downloadWhitelist = function(repo_url) {
   const url = repo_url + '/.cvmfswhitelist';
-  return cvmfs.fetcher.download(url);
+  return cvmfs.retriever.download(url);
 };
 
-cvmfs.fetcher.downloadChunk = function(data_url, hash, suffix='') {
+cvmfs.retriever.downloadChunk = function(data_url, hash, suffix='') {
   const url = [data_url, '/', hash.substr(0, 2), '/', hash.substr(2), suffix].join('');
   return this.download(url);
 };
 
-cvmfs.fetcher.downloadCertificate = function(data_url, hash) {
+cvmfs.retriever.downloadCertificate = function(data_url, hash) {
   return this.downloadChunk(data_url, hash, 'X');
 };
 
-cvmfs.fetcher.downloadCatalog = function(data_url, hash) {
+cvmfs.retriever.downloadCatalog = function(data_url, hash) {
   return this.downloadChunk(data_url, hash, 'C');
 };
 
-cvmfs.fetcher.parseManifest = function(data, repo_name) {
+cvmfs.retriever.parseManifest = function(data, repo_name) {
   const manifest = {};
 
   const lines = data.split('\n');
@@ -102,12 +102,12 @@ cvmfs.fetcher.parseManifest = function(data, repo_name) {
   return manifest;
 };
 
-cvmfs.fetcher.fetchManifest = function(repo_url, repo_name) {
-  const manifest_raw = cvmfs.fetcher.downloadManifest(repo_url);
-  return cvmfs.fetcher.parseManifest(manifest_raw, repo_name);
+cvmfs.retriever.fetchManifest = function(repo_url, repo_name) {
+  const manifest_raw = cvmfs.retriever.downloadManifest(repo_url);
+  return cvmfs.retriever.parseManifest(manifest_raw, repo_name);
 };
 
-cvmfs.fetcher.parseWhitelist = function(data, repo_name) {
+cvmfs.retriever.parseWhitelist = function(data, repo_name) {
   const metadata = data.substr(0, data.search('--'));
   var metadata_hash_str = data.substr(metadata.length + 3 /*(--\n)*/);
   metadata_hash_str = metadata_hash_str.substr(0, metadata_hash_str.search('\n'));
@@ -139,13 +139,13 @@ cvmfs.fetcher.parseWhitelist = function(data, repo_name) {
   return whitelist;
 };
 
-cvmfs.fetcher.fetchWhitelist = function(repo_url, repo_name) {
-  const data = cvmfs.fetcher.downloadWhitelist(repo_url);
-  return cvmfs.fetcher.parseWhitelist(data, repo_name);
+cvmfs.retriever.fetchWhitelist = function(repo_url, repo_name) {
+  const data = cvmfs.retriever.downloadWhitelist(repo_url);
+  return cvmfs.retriever.parseWhitelist(data, repo_name);
 };
 
-cvmfs.fetcher.fetchCertificate = function(data_url, cert_hash) {
-  const data = cvmfs.fetcher.downloadCertificate(data_url, cert_hash.download_handle);
+cvmfs.retriever.fetchCertificate = function(data_url, cert_hash) {
+  const data = cvmfs.retriever.downloadCertificate(data_url, cert_hash.download_handle);
 
   const data_hex = cvmfs.util.stringToHex(data);
   const data_hash = cvmfs.util.digestHex(data_hex, cert_hash.alg);
@@ -160,8 +160,8 @@ cvmfs.fetcher.fetchCertificate = function(data_url, cert_hash) {
   return certificate;
 };
 
-cvmfs.fetcher.fetchCatalog = function(data_url, catalog_hash) {
-  const data = cvmfs.fetcher.downloadCatalog(data_url, catalog_hash.download_handle);
+cvmfs.retriever.fetchCatalog = function(data_url, catalog_hash) {
+  const data = cvmfs.retriever.downloadCatalog(data_url, catalog_hash.download_handle);
 
   const data_hex = cvmfs.util.stringToHex(data);
   const data_hash = cvmfs.util.digestHex(data_hex, catalog_hash.alg);

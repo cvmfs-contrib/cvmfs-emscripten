@@ -1,5 +1,5 @@
 const cvmfs = {
-  fetcher: {},
+  retriever: {},
   util: {},
 
   _master_keys: null

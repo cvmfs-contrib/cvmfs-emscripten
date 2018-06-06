@@ -2,9 +2,9 @@ cvmfs.repo = function(base_url, repo_name) {
   this._repo_url = cvmfs.util.repoURL(base_url, repo_name);
   this._data_url = cvmfs.util.dataURL(base_url, repo_name);
 
-  this._manifest = cvmfs.fetcher.fetchManifest(this._repo_url, repo_name);
-  this._whitelist = cvmfs.fetcher.fetchWhitelist(this._repo_url, repo_name);
-  this._certificate = cvmfs.fetcher.fetchCertificate(this._data_url, this._manifest.certificate_hash);
+  this._manifest = cvmfs.retriever.fetchManifest(this._repo_url, repo_name);
+  this._whitelist = cvmfs.retriever.fetchWhitelist(this._repo_url, repo_name);
+  this._certificate = cvmfs.retriever.fetchCertificate(this._data_url, this._manifest.certificate_hash);
 
   /* verify whitelist signature */
   var whitelist_verified = false;
@@ -37,7 +37,7 @@ cvmfs.repo.prototype = {
   _catalog_properties: null,
   _getCatalog: function() {
     if (this._catalog === null) {
-      this._catalog = cvmfs.fetcher.fetchCatalog(this._data_url, this._manifest.catalog_hash);
+      this._catalog = cvmfs.retriever.fetchCatalog(this._data_url, this._manifest.catalog_hash);
     }
     return this._catalog;
   },
