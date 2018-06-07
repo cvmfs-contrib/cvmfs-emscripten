@@ -4,16 +4,9 @@ mergeInto(LibraryManager.library, {
     ops_table: null,
     mountroot: '/cvmfs',
     base_url: 'http://hepvm.cern.ch/cvmfs',
-    repos: null,
     mount: function(mount) {
       const repo_name = mount.opts.repo_name;
       const repo = new cvmfs.repo(this.base_url, repo_name);
-
-      if (this.repos === null) {
-        this.repos = new Map();
-      }
-
-      this.repos.set(mount.mountpoint, repo);
 
       const manifest = repo.getManifest();
       const whitelist = repo.getWhitelist();
@@ -25,7 +18,10 @@ mergeInto(LibraryManager.library, {
       console.log(repo.getCatalogStats());
       console.log(repo.getCatalogProperties());
 
-      return CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
+      const node = CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
+      node.cvmfs_repo = repo;
+
+      return node;
     },
     createNode: function(parent, name, mode) {
       if (!CVMFS.ops_table) {
@@ -57,6 +53,7 @@ mergeInto(LibraryManager.library, {
       }
 
       var node = FS.createNode(parent, name, mode, 0);
+
       if (FS.isDir(node.mode)) {
         node.node_ops = CVMFS.ops_table.dir.node;
         node.stream_ops = CVMFS.ops_table.dir.stream;
@@ -67,6 +64,8 @@ mergeInto(LibraryManager.library, {
         node.node_ops = CVMFS.ops_table.link.node;
         node.stream_ops = CVMFS.ops_table.link.stream;
       }
+
+      if (parent !== null) node.cvmfs_repo = parent.cvmfs_repo;
 
       return node;
     },
