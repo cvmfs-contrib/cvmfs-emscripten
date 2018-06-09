@@ -19,7 +19,7 @@ mergeInto(LibraryManager.library, {
       console.log(repo.getCatalogProperties());
 
       const node = CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
-      node.cvmfs_repo = repo;
+      node.repo = repo;
 
       return node;
     },
@@ -65,15 +65,20 @@ mergeInto(LibraryManager.library, {
         node.stream_ops = CVMFS.ops_table.link.stream;
       }
 
-      if (parent !== null) node.cvmfs_repo = parent.cvmfs_repo;
+      if (parent !== null) node.repo = parent.repo;
 
       return node;
+    },
+    getRelativePath: function(parent, name) {
+      return PATH.join(FS.getPath(parent), name).replace(parent.mount.mountpoint, '');
     },
     node_ops: {
       getattr: function(node) {
         throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
       },
       lookup: function(parent, name) {
+        const path = CVMFS.getRelativePath(parent, name);
+        console.log(parent.repo.getFlagsForPath(path));
         throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
       },
       readdir: function(node) {

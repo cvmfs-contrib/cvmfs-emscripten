@@ -44,7 +44,7 @@ cvmfs.repo.prototype = {
   getCatalogStats: function() {
     if (this._catalog_stats === null) {
       const catalog = this._getCatalog();
-      const result = catalog.exec("SELECT * FROM STATISTICS")[0].values;
+      const result = catalog.exec('SELECT * FROM STATISTICS')[0].values;
 
       this._catalog_stats = {};
       for (const row of result) {
@@ -58,7 +58,7 @@ cvmfs.repo.prototype = {
   getCatalogProperties: function() {
     if (this._catalog_properties === null) {
       const catalog = this._getCatalog();
-      const result = catalog.exec("SELECT * FROM PROPERTIES")[0].values;
+      const result = catalog.exec('SELECT * FROM PROPERTIES')[0].values;
 
       this._catalog_properties = {};
       for (const row of result) {
@@ -75,6 +75,30 @@ cvmfs.repo.prototype = {
       }
     }
     return this._catalog_properties;
+  },
+  _md5PairFromPath: function(path) {
+    const md5hex = cvmfs.util.digestString(path, 'md5');
+
+    var bytes = new Array(16);
+    var i = md5hex.length;
+    while (i >= 0) {
+        bytes[15 - i/2] = md5hex.substr(i, 2);
+        i -= 2;
+    }
+
+    return {
+      low: '0x' + bytes.slice(0, bytes.length/2).join(''),
+      high: '0x' + bytes.slice(bytes.length/2).join('')
+    };
+  },
+  getFlagsForPath: function(path) {
+    const pair = this._md5PairFromPath(path);
+    const query = 'SELECT flags FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
+
+    const result = this._getCatalog().exec(query);
+    if (result[0] === undefined) return null;
+
+    return result[0].values[0][0];
   },
   getManifest: function() { return this._manifest; },
   getWhitelist: function() { return this._whitelist; },
