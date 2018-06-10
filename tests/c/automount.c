@@ -1,7 +1,5 @@
 #include <assert.h>
-#include <dirent.h>
 #include <emscripten.h>
-#include <errno.h>
 #include <fcntl.h>
 
 int main() {

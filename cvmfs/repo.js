@@ -31,6 +31,15 @@ cvmfs.repo = function(base_url, repo_name) {
   if (!signature.verify(this._manifest.signature_hex)) return undefined;
 };
 
+cvmfs.ENTRY_TYPE = Object.freeze({
+  DIR: 1,
+  NEST_TRANS: 2,
+  REG: 4,
+  SYMB_LINK: 8,
+  NEST_ROOT: 33,
+  CHUNKD: 68
+});
+
 cvmfs.repo.prototype = {
   _catalog: null,
   _catalog_stats: null,

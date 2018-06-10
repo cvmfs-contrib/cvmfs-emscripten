@@ -78,8 +78,27 @@ mergeInto(LibraryManager.library, {
       },
       lookup: function(parent, name) {
         const path = CVMFS.getRelativePath(parent, name);
-        console.log(parent.repo.getFlagsForPath(path));
-        throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
+        const flags = parent.repo.getFlagsForPath(path);
+
+        var mode = 511;
+        switch (flags) {
+          case cvmfs.ENTRY_TYPE.DIR:
+          case cvmfs.ENTRY_TYPE.NEST_ROOT:
+          case cvmfs.ENTRY_TYPE.NEST_TRANS:
+            mode |= {{{ cDefine('S_IFDIR') }}};
+            break;
+          case cvmfs.ENTRY_TYPE.REG:
+          case cvmfs.ENTRY_TYPE.CHUNKD:
+            mode |= {{{ cDefine('S_IFREG') }}};
+            break;
+          case cvmfs.ENTRY_TYPE.SYMB_LINK:
+            mode |= {{{ cDefine('S_IFLNK') }}};
+            break;
+          default:
+            throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
+        }
+
+        return CVMFS.createNode(parent, name, mode);
       },
       readdir: function(node) {
         throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);

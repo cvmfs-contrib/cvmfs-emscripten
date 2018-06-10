@@ -219,7 +219,7 @@ mergeInto(LibraryManager.library, {
         // if we failed to find it in the cache, call into the VFS
         return FS.lookup(parent, name);
       }
-      return node;  
+      return node;
     },
     createNode: function(parent, name, mode, rdev) {
       if (!FS.FSNode) {
