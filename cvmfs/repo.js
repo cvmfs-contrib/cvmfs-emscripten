@@ -109,6 +109,15 @@ cvmfs.repo.prototype = {
 
     return result[0].values[0][0];
   },
+  getNamesForParentPath: function(path) {
+    const pair = this._md5PairFromPath(path);
+    const query = 'SELECT name FROM catalog WHERE parent_1 = ' + pair.high + ' AND parent_2 = ' + pair.low;
+
+    const result = this._getCatalog().exec(query);
+    if (result[0] === undefined) return null;
+
+    return result[0].values[0];
+  },
   getManifest: function() { return this._manifest; },
   getWhitelist: function() { return this._whitelist; },
   getCertificate: function() { return this._certificate; }
