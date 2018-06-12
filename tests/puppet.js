@@ -44,7 +44,7 @@ process.on('unhandledRejection', err => { throw err; });
     // window._cvmfs_exitstatus is only defined for C tests
     const exitstatus = await page.evaluate('window._cvmfs_exitstatus');
     if (exitstatus !== undefined) {
-      console.log('The C program exited with status ' + exitstatus + '.');
+      console.log('The C/C++ program exited with status ' + exitstatus + '.');
       process.exitCode = exitstatus;
     }
   } else {

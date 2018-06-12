@@ -18,16 +18,16 @@ TEST_DIR="$( cd "$( dirname "$0" )" && pwd )"
 SRC_DIR="$( dirname "$TEST_DIR" )"
 
 JS_DIR=$TEST_DIR/js
-C_DIR=$TEST_DIR/c
+CPP_DIR=$TEST_DIR/cpp
 
 TEST_BUILD_DIR=$TEST_DIR/build
 JS_BUILD_DIR=$TEST_BUILD_DIR/js
-C_BUILD_DIR=$TEST_BUILD_DIR/c
+CPP_BUILD_DIR=$TEST_BUILD_DIR/cpp
 
 if [ $COMPILE -eq 1 ]; then
     mkdir -p $TEST_BUILD_DIR
     mkdir -p $JS_BUILD_DIR
-    mkdir -p $C_BUILD_DIR
+    mkdir -p $CPP_BUILD_DIR
 
     $SRC_DIR/generate-pre.sh
 
@@ -47,16 +47,21 @@ if [ $COMPILE -eq 1 ]; then
     done
     echo "DONE"
 
-    echo -n "Compiling C tests... "
-    for testfile in $C_DIR/*.c; do
+    echo -n "Compiling C/C++ tests... "
+    for testfile in $CPP_DIR/*.c*; do
         testfile=$(basename $testfile)
 
-        $SRC_DIR/emcc-cvmfs \
+        EMC=emcc-cvmfs
+        if [ ${testfile##*.} == "cpp" ]; then
+          EMC="em++-cvmfs --std=c++11"
+        fi
+
+        $SRC_DIR/$EMC \
             -s WASM=0 \
             -s NO_EXIT_RUNTIME=0 \
             --shell-file $TEST_DIR/test_container.html \
-            -o $C_BUILD_DIR/${testfile%*.*}.html \
-            $C_DIR/$testfile
+            -o $CPP_BUILD_DIR/${testfile%*.*}.html \
+            $CPP_DIR/$testfile
     done
     echo "DONE"
 fi
@@ -71,8 +76,8 @@ if [ $TEST -eq 1 ]; then
 
     echo ""
 
-    echo "Running C tests:"
-    for testfile in $C_BUILD_DIR/*.html; do
+    echo "Running C/C++ tests:"
+    for testfile in $CPP_BUILD_DIR/*.html; do
         node $TEST_DIR/puppet.js $testfile $CHROME_EXE
     done
 fi
