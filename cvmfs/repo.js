@@ -31,13 +31,14 @@ cvmfs.repo = function(base_url, repo_name) {
   if (!signature.verify(this._manifest.signature_hex)) return undefined;
 };
 
+// Bit flags
 cvmfs.ENTRY_TYPE = Object.freeze({
   DIR: 1,
   NEST_TRANS: 2,
   REG: 4,
   SYMB_LINK: 8,
-  NEST_ROOT: 33,
-  CHUNKD: 68
+  NEST_ROOT: 32,
+  CHUNKD: 64
 });
 
 cvmfs.repo.prototype = {
@@ -116,7 +117,7 @@ cvmfs.repo.prototype = {
     const result = this._getCatalog().exec(query);
     if (result[0] === undefined) return null;
 
-    return result[0].values[0];
+    return result[0].values.map(e => e[0]);
   },
   getManifest: function() { return this._manifest; },
   getWhitelist: function() { return this._whitelist; },

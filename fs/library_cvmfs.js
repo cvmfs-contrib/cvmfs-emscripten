@@ -81,27 +81,26 @@ mergeInto(LibraryManager.library, {
         const flags = parent.repo.getFlagsForPath(path);
 
         var mode = 511;
-        switch (flags) {
-          case cvmfs.ENTRY_TYPE.DIR:
-          case cvmfs.ENTRY_TYPE.NEST_ROOT:
-          case cvmfs.ENTRY_TYPE.NEST_TRANS:
-            mode |= {{{ cDefine('S_IFDIR') }}};
-            break;
-          case cvmfs.ENTRY_TYPE.REG:
-          case cvmfs.ENTRY_TYPE.CHUNKD:
-            mode |= {{{ cDefine('S_IFREG') }}};
-            break;
-          case cvmfs.ENTRY_TYPE.SYMB_LINK:
-            mode |= {{{ cDefine('S_IFLNK') }}};
-            break;
-          default:
-            throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
-        }
+        if (flags & cvmfs.ENTRY_TYPE.SYMB_LINK)
+          mode |= {{{ cDefine('S_IFLNK') }}};
+        else if (flags & cvmfs.ENTRY_TYPE.REG)
+          mode |= {{{ cDefine('S_IFREG') }}};
+        else if (flags & cvmfs.ENTRY_TYPE.DIR)
+          mode |= {{{ cDefine('S_IFDIR') }}};
+        else
+          throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
 
         return CVMFS.createNode(parent, name, mode);
       },
       readdir: function(node) {
-        throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
+        const entries = ['.', '..'];
+
+        const path = FS.getPath(node).replace(node.mount.mountpoint, '');
+        const names = node.repo.getNamesForParentPath(path);
+        if (names === null)
+          throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
+
+        return entries.concat(names);
       },
       readlink: function(node) {
         throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
