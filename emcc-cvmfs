@@ -2,6 +2,12 @@
 
 set -e
 
+EMC=emcc
+if [ $1 == "em++" ]; then
+  EMC=em++
+  shift
+fi
+
 OUTPUT_JS="a.out.js"
 
 i=1
@@ -26,7 +32,7 @@ FS_DIR=$SRC_DIR/fs
 
 $SRC_DIR/generate-pre.sh
 
-emcc $* \
+$EMC $* \
     --js-library $FS_DIR/library_cvmfs.js \
     --js-library $FS_DIR/library_fs.js \
     --pre-js $SRC_DIR/pre.js
