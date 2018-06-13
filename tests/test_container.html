@@ -12,7 +12,10 @@
 
       var Module = {
         print: function(text) {
-          // for now, we have no use for printing non-error messages
+          if (arguments.length > 1) {
+            text = Array.prototype.slice.call(arguments).join(' ');
+          }
+          console.log(text);
         },
         printErr: function(text) {
           if (arguments.length > 1) {
