@@ -18,13 +18,13 @@ void check_entries(const string& dirpath, const unordered_set<string>& entries) 
     while ((ent = readdir(dir)) != NULL) {
       string entry = ent->d_name;
 
-      if (entry == "." || entry == "..") continue;
-
-      if (entries.find(entry) != entries.end())
+      if (entries.find(entry) != entries.end()
+          || entry == "."
+          || entry == "..")
         ++found;
     }
 
-    assert(found == entries.size());
+    assert(found == (entries.size() + 2));
 }
 
 int main() {
