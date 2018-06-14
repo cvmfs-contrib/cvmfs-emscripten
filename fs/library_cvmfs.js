@@ -93,14 +93,15 @@ mergeInto(LibraryManager.library, {
         return CVMFS.createNode(parent, name, mode);
       },
       readdir: function(node) {
-        const entries = ['.', '..'];
+        if (node.cvmfs_entries === undefined) {
+          const path = FS.getPath(node).replace(node.mount.mountpoint, '');
+          const entries = node.repo.getNamesForParentPath(path);
+          if (entries === null)
+            throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
+          node.cvmfs_entries = entries;
+        }
 
-        const path = FS.getPath(node).replace(node.mount.mountpoint, '');
-        const names = node.repo.getNamesForParentPath(path);
-        if (names === null)
-          throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
-
-        return entries.concat(names);
+        return node.cvmfs_entries.concat(['.', '..']);
       },
       readlink: function(node) {
         throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
