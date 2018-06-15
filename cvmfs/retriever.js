@@ -75,7 +75,7 @@ cvmfs.retriever.parseManifest = function(data, repo_name) {
         manifest.published_timestamp = parseInt(tail);
         break;
       case 'X':
-        manifest.certificate_hash = new cvmfs.util.hash(tail);
+        manifest.cert_hash = new cvmfs.util.hash(tail);
         break;
     }
 
@@ -130,7 +130,7 @@ cvmfs.retriever.parseWhitelist = function(data, repo_name) {
     parseInt(expiry_line.substr(9, 2))
   );
 
-  whitelist.certificate_fingerprint = new cvmfs.util.hash(lines[3].replace(/\:/g, '').toLowerCase());
+  whitelist.cert_fp = new cvmfs.util.hash(lines[3].replace(/\:/g, '').toLowerCase());
 
   var signature = data.substr(metadata.length + 3 /*(--\n)*/);
   signature = signature.substr(signature.search('\n') + 1 /*(\n)*/);
