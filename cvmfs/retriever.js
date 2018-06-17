@@ -160,13 +160,27 @@ cvmfs.retriever.fetchCertificate = function(data_url, cert_hash) {
   return certificate;
 };
 
+cvmfs.retriever.dataIsValid = function(data, hash) {
+  const data_hex = cvmfs.util.stringToHex(data);
+  const data_hash = cvmfs.util.digestHex(data_hex, hash.alg);
+  return data_hash === hash.hex;
+}
+
 cvmfs.retriever.fetchCatalog = function(data_url, catalog_hash) {
   const data = cvmfs.retriever.downloadCatalog(data_url, catalog_hash.download_handle);
 
-  const data_hex = cvmfs.util.stringToHex(data);
-  const data_hash = cvmfs.util.digestHex(data_hex, catalog_hash.alg);
-  if (data_hash !== catalog_hash.hex) return undefined;
+  if (!cvmfs.retriever.dataIsValid(data, catalog_hash))
+    return undefined;
 
   const db_data = pako.inflate(data);
   return new SQL.Database(db_data);
+};
+
+cvmfs.retriever.fetchChunk = function(data_url, hash) {
+  const data = cvmfs.retriever.downloadChunk(data_url, hash.download_handle);
+
+  if (!cvmfs.retriever.dataIsValid(data, hash))
+    return undefined;
+
+  return pako.inflate(data);
 };

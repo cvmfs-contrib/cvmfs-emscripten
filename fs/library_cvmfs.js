@@ -109,7 +109,18 @@ mergeInto(LibraryManager.library, {
     },
     stream_ops: {
       read: function(stream, buffer, offset, length, position) {
-        throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
+        const node = stream.node;
+
+        const path = FS.getPath(node).replace(node.mount.mountpoint, '');
+        const content = node.repo.getContentForRegularFile(path);
+
+        if (content === null || position >= content.length)
+          return 0;
+
+        const size = Math.min(content.length - position, length);
+        buffer.set(content.subarray(position, position + size), offset);
+
+        return size;
       }
     }
   }
