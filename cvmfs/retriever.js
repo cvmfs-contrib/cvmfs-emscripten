@@ -176,11 +176,16 @@ cvmfs.retriever.fetchCatalog = function(data_url, catalog_hash) {
   return new SQL.Database(db_data);
 };
 
-cvmfs.retriever.fetchChunk = function(data_url, hash) {
+cvmfs.retriever.fetchChunk = function(data_url, hash, decompress=true) {
   const data = cvmfs.retriever.downloadChunk(data_url, hash.download_handle);
 
   if (!cvmfs.retriever.dataIsValid(data, hash))
     return undefined;
 
-  return pako.inflate(data);
+  if (decompress)
+    return pako.inflate(data);
+
+  if (cvmfs.retriever.text_encoder === undefined)
+    cvmfs.retriever.text_encoder = new TextEncoder();
+  return cvmfs.retriever.text_encoder.encode(data);
 };

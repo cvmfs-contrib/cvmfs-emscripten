@@ -41,6 +41,12 @@ cvmfs.ENTRY_TYPE = Object.freeze({
   CHUNKD: 64
 });
 
+// Bit flags
+cvmfs.COMPRESSION_ALG = Object.freeze({
+  NO_COMPRESSION: 1 << 11,
+  ZLIB_DEFAULT: 0
+});
+
 cvmfs.repo.prototype = {
   _catalog: null,
   _catalog_stats: null,
@@ -119,7 +125,7 @@ cvmfs.repo.prototype = {
 
     return result[0].values.map(e => e[0]);
   },
-  getContentForRegularFile: function(path) {
+  getContentForRegularFile: function(path, flags) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT hex(hash) FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
 
@@ -129,7 +135,9 @@ cvmfs.repo.prototype = {
     const hash_str = result[0].values[0][0].toLowerCase();
     const hash = new cvmfs.util.hash(hash_str);
 
-    return cvmfs.retriever.fetchChunk(this._data_url, hash);
+    const decompress = !(flags & cvmfs.COMPRESSION_ALG.NO_COMPRESSION);
+
+    return cvmfs.retriever.fetchChunk(this._data_url, hash, decompress);
   },
   getManifest: function() { return this._manifest; },
   getWhitelist: function() { return this._whitelist; },

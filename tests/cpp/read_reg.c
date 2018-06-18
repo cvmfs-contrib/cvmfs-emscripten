@@ -29,6 +29,10 @@ int main() {
     const char regular_contents[] = "content\n";
     check_contents(regular_path, regular_contents);
 
+    const char uncompressed_path[] = "/cvmfs/emscripten.cvmfs.io/test/uncompressed";
+    const char uncompressed_contents[] = "uncompressed\n";
+    check_contents(uncompressed_path, uncompressed_contents);
+
     const char empty_path[] = "/cvmfs/emscripten.cvmfs.io/test/empty";
     const char empty_contents[] = "";
     check_contents(empty_path, empty_contents);

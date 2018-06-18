@@ -90,7 +90,10 @@ mergeInto(LibraryManager.library, {
         else
           throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
 
-        return CVMFS.createNode(parent, name, mode);
+        const node = CVMFS.createNode(parent, name, mode);
+        node.cvmfs_flags = flags;
+
+        return node;
       },
       readdir: function(node) {
         if (node.cvmfs_entries === undefined) {
@@ -112,7 +115,7 @@ mergeInto(LibraryManager.library, {
         const node = stream.node;
 
         const path = FS.getPath(node).replace(node.mount.mountpoint, '');
-        const content = node.repo.getContentForRegularFile(path);
+        const content = node.repo.getContentForRegularFile(path, node.cvmfs_flags);
 
         if (content === null || position >= content.length)
           return 0;
