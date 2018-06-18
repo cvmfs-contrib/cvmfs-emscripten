@@ -33,6 +33,10 @@ int main() {
     const char uncompressed_contents[] = "uncompressed\n";
     check_contents(uncompressed_path, uncompressed_contents);
 
+    const char shake128_path[] = "/cvmfs/emscripten.cvmfs.io/test/shake-128";
+    const char shake128_contents[] = "shake-128\n";
+    check_contents(shake128_path, shake128_contents);
+
     const char empty_path[] = "/cvmfs/emscripten.cvmfs.io/test/empty";
     const char empty_contents[] = "";
     check_contents(empty_path, empty_contents);

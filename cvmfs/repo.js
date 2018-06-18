@@ -42,9 +42,14 @@ cvmfs.ENTRY_TYPE = Object.freeze({
 });
 
 // Bit flags
+cvmfs.CHUNK_HASH_ALG = Object.freeze({
+  RIPEMD_160: 1 << 8,
+  SHAKE_128: 1 << 9
+});
+
+// Bit flags
 cvmfs.COMPRESSION_ALG = Object.freeze({
-  NO_COMPRESSION: 1 << 11,
-  ZLIB_DEFAULT: 0
+  NO_COMPRESSION: 1 << 11
 });
 
 cvmfs.repo.prototype = {
@@ -132,7 +137,9 @@ cvmfs.repo.prototype = {
     const result = this._getCatalog().exec(query);
     if (result[0] === undefined) return null;
 
-    const hash_str = result[0].values[0][0].toLowerCase();
+    let hash_str = result[0].values[0][0].toLowerCase();
+    if (flags & cvmfs.CHUNK_HASH_ALG.SHAKE_128)
+      hash_str += "-shake128";
     const hash = new cvmfs.util.hash(hash_str);
 
     const decompress = !(flags & cvmfs.COMPRESSION_ALG.NO_COMPRESSION);
