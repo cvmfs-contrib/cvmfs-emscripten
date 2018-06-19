@@ -107,7 +107,12 @@ mergeInto(LibraryManager.library, {
         return node.cvmfs_entries.concat(['.', '..']);
       },
       readlink: function(node) {
-        throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
+        if (node.cvmfs_symlink === undefined) {
+          const path = FS.getPath(node).replace(node.mount.mountpoint, '');
+          node.cvmfs_symlink = node.repo.getSymlinkForPath(path);
+        }
+
+        return node.cvmfs_symlink;
       },
     },
     stream_ops: {
