@@ -112,7 +112,18 @@ mergeInto(LibraryManager.library, {
           node.cvmfs_symlink = node.repo.getSymlinkForPath(path);
         }
 
-        return node.cvmfs_symlink;
+        let symlink = node.cvmfs_symlink;
+
+        const match = node.cvmfs_symlink.match(/\$\((.*)\)/);
+        if (match !== null) {
+          const symvar = match[1];
+          let symval = CVMFS.symlink_vars[symvar];
+          if (symval === undefined)
+            symval = '';
+          symlink = symlink.replace(match[0], symval);
+        }
+
+        return symlink;
       },
     },
     stream_ops: {
@@ -130,6 +141,10 @@ mergeInto(LibraryManager.library, {
 
         return size;
       }
+    },
+    symlink_vars: {},
+    setSymlinkVar: function(symvar, value) {
+      CVMFS.symlink_vars[symvar] = value;
     }
   }
 });
