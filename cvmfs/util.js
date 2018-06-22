@@ -26,6 +26,8 @@ cvmfs.util.hash = function(download_handle) {
   } else {
     this.hex = download_handle.substring(0, hash_len);
     this.alg = download_handle.substring(hash_len + 1);
+
+    if (this.alg === 'rmd160') this.alg = 'ripemd160';
   }
 }
 

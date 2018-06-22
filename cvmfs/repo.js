@@ -138,8 +138,8 @@ cvmfs.repo.prototype = {
     if (result[0] === undefined) return null;
 
     let hash_str = result[0].values[0][0].toLowerCase();
-    if (flags & cvmfs.CHUNK_HASH_ALG.SHAKE_128)
-      hash_str += "-shake128";
+    if (flags & cvmfs.CHUNK_HASH_ALG.SHAKE_128) hash_str += "-shake128";
+    else if (flags & cvmfs.CHUNK_HASH_ALG.RIPEMD_160) hash_str += "-rmd160";
     const hash = new cvmfs.util.hash(hash_str);
 
     const decompress = !(flags & cvmfs.COMPRESSION_ALG.NO_COMPRESSION);

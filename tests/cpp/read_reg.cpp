@@ -37,6 +37,7 @@ int main() {
       { .path = "regular",               .contents = "content\n" },
       { .path = "uncompressed",          .contents = "uncompressed\n" },
       { .path = "shake-128",             .contents = "shake-128\n" },
+      { .path = "ripemd-160",            .contents = "ripemd-160\n" },
       { .path = "empty",                 .contents = "" },
       { .path = "subdir/regular_subdir", .contents = "" }
     };
