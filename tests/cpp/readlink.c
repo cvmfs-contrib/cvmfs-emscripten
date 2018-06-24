@@ -24,13 +24,29 @@ int main() {
     const char symlink_val[] = "/cvmfs/emscripten.cvmfs.io/test/regular";
     check_symlink(symlink_path, symlink_val);
 
+    // $(PREFIX)/regular
     const char varlink_path[] = "/cvmfs/emscripten.cvmfs.io/test/varlink";
     check_symlink(varlink_path, "/regular");
+
+    // $(PREFIX)/$(INFIX)/$(POSTFIX)
+    const char multivar_path[] = "/cvmfs/emscripten.cvmfs.io/test/varlink-multi";
+    check_symlink(multivar_path, "/");
 
     EM_ASM(
         CVMFS.setSymlinkVar('PREFIX', '/home');
     );
     check_symlink(varlink_path, "/home/regular");
+    check_symlink(multivar_path, "/home");
+
+    EM_ASM(
+        CVMFS.setSymlinkVar('INFIX', 'emscripten');
+    );
+    check_symlink(multivar_path, "/home/emscripten");
+
+    EM_ASM(
+        CVMFS.setSymlinkVar('POSTFIX', 'cvmfs');
+    );
+    check_symlink(multivar_path, "/home/emscripten/cvmfs");
 
     return 0;
 }

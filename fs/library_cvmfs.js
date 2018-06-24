@@ -112,15 +112,18 @@ mergeInto(LibraryManager.library, {
           node.cvmfs_symlink = node.repo.getSymlinkForPath(path);
         }
 
+        const re = /\$\(([^\$\(\)]*)\)/;
         let symlink = node.cvmfs_symlink;
 
-        const match = node.cvmfs_symlink.match(/\$\((.*)\)/);
-        if (match !== null) {
+        let match = symlink.match(re);
+        while (match !== null) {
           const symvar = match[1];
           let symval = CVMFS.symlink_vars[symvar];
           if (symval === undefined)
             symval = '';
           symlink = symlink.replace(match[0], symval);
+
+          match = symlink.match(re);
         }
 
         return symlink;
