@@ -176,8 +176,10 @@ cvmfs.retriever.fetchCatalog = function(data_url, catalog_hash) {
   return new SQL.Database(db_data);
 };
 
-cvmfs.retriever.fetchChunk = function(data_url, hash, decompress=true) {
-  const data = cvmfs.retriever.downloadChunk(data_url, hash.download_handle);
+cvmfs.retriever.fetchChunk = function(data_url, hash, decompress=true, partial=false) {
+  let download_handle = hash.download_handle;
+  if (partial) download_handle += "P";
+  const data = cvmfs.retriever.downloadChunk(data_url, download_handle);
 
   if (!cvmfs.retriever.dataIsValid(data, hash))
     return undefined;

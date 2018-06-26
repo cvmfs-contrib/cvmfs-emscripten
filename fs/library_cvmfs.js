@@ -132,17 +132,41 @@ mergeInto(LibraryManager.library, {
     stream_ops: {
       read: function(stream, buffer, offset, length, position) {
         const node = stream.node;
-
+        const flags = node.cvmfs_flags;
         const path = FS.getPath(node).replace(node.mount.mountpoint, '');
-        const content = node.repo.getContentForRegularFile(path, node.cvmfs_flags);
+        let bytes_read = 0;
 
-        if (content === null || position >= content.length)
-          return 0;
+        if (flags & cvmfs.ENTRY_TYPE.CHUNKD) {
+          const lb = position;
+          const ub = position + length - 1;
+          const chunks = node.repo.getChunksWithinRangeForPath(lb, ub, path, flags);
 
-        const size = Math.min(content.length - position, length);
-        buffer.set(content.subarray(position, position + size), offset);
+          let total_chunk_len = 0;
+          chunks.forEach(e => {
+            const chunk = e.chunk;
 
-        return size;
+            total_chunk_len += chunk.length;
+            const size = Math.min(total_chunk_len - position, length);
+            buffer.set(chunk.subarray(0, size), offset);
+
+            length -= size;
+            position += size;
+            offset += size;
+
+            bytes_read += size;
+          });
+        } else {
+          const content = node.repo.getContentForRegularFile(path, node.cvmfs_flags);
+
+          if (content === null || position >= content.length)
+            return 0;
+
+          const size = Math.min(content.length - position, length);
+          buffer.set(content.subarray(position, position + size), offset);
+          bytes_read = size;
+        }
+
+        return bytes_read;
       }
     },
     symlink_vars: {},

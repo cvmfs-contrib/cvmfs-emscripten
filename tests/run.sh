@@ -60,6 +60,7 @@ if [ $COMPILE -eq 1 ]; then
             -s WASM=0 \
             -s NO_EXIT_RUNTIME=0 \
             --shell-file $TEST_DIR/test_container.html \
+            --embed-file $TEST_DIR/data@/data \
             -o $CPP_BUILD_DIR/${testfile%*.*}.html \
             $CPP_DIR/$testfile
     done

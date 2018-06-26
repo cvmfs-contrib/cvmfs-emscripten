@@ -146,6 +146,36 @@ cvmfs.repo.prototype = {
 
     return cvmfs.retriever.fetchChunk(this._data_url, hash, decompress);
   },
+  getChunksWithinRangeForPath: function(low, high, path, flags) {
+    const pair = this._md5PairFromPath(path);
+    const query = 'SELECT hex(hash), size FROM chunks WHERE'
+                  + ' md5path_1 = ' + pair.high
+                  + ' AND md5path_2 = ' + pair.low
+                  + ' AND offset <= ' + high
+                  + ' AND (offset + size) >= ' + low
+                  + ' ORDER BY ' + 'offset';
+
+    const result = this._getCatalog().exec(query);
+    if (result[0] === undefined) return null;
+
+    const should_decompress = !(flags & cvmfs.COMPRESSION_ALG.NO_COMPRESSION);
+    const chunks = result[0].values.map(e => {
+      let hash_str = e[0].toLowerCase();
+      if (flags & cvmfs.CHUNK_HASH_ALG.SHAKE_128) {
+        hash_str += "-shake128";
+      } else if (flags & cvmfs.CHUNK_HASH_ALG.RIPEMD_160) {
+        hash_str += "-rmd160";
+      }
+      const hash = new cvmfs.util.hash(hash_str);
+
+      const chunk = cvmfs.retriever.fetchChunk(this._data_url, hash, should_decompress, true);
+      const size = e[1];
+
+      return {chunk, size};
+    });
+
+    return chunks;
+  },
   getSymlinkForPath: function(path) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT symlink FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
