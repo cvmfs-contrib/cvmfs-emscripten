@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const assert = require('assert');
 
 process.on('unhandledRejection', err => { throw err; });
 
@@ -19,6 +20,25 @@ process.on('unhandledRejection', err => { throw err; });
   await page.exposeFunction('_cvmfs_printErr', text =>
     err_msgs.push(text)
   );
+
+  let hashes_log = [];
+  await page.exposeFunction('_cvmfs_clearHashesLog', () =>
+    hashes_log = []
+  );
+  await page.exposeFunction('_cvmfs_checkHashesLog', hashes =>
+    assert.deepStrictEqual(hashes_log, hashes)
+  );
+
+  // log all chunk hashes from outgoing requests
+  await page.on('request', request => {
+    const hash = request.url()
+      .replace(/.*data/, '')
+      .replace('/', '')
+      .replace('/', '')
+      .replace('-shake128', '')
+      .replace('P', '');
+    hashes_log.push(hash);
+  });
 
   // load test page on browser
   const test_file = process.argv[2];

@@ -1,0 +1,65 @@
+#include <assert.h>
+#include <emscripten.h>
+#include <fcntl.h>
+#include <string.h>
+#include <stdbool.h>
+#include <unistd.h>
+
+#define CHUNK1 75
+#define CHUNK2 36
+#define CHUNK3 53
+#define CHUNK4 32
+#define CHUNK5 60
+
+#define FILE_SIZE (CHUNK1 + CHUNK2 + CHUNK3 + CHUNK4 + CHUNK5)
+
+void read_till_length(size_t len) {
+  char reference[FILE_SIZE] = {0};
+  char chunked[FILE_SIZE] = {0};
+  int fd1, fd2, bytes_read;
+
+  fd1 = open("/cvmfs/emscripten.cvmfs.io/test/chunked-mini", O_RDONLY);
+  assert(fd1 != -1);
+  assert(read(fd1, chunked, len) == len);
+
+  fd2 = open("data/chunked-mini", O_RDONLY);
+  read(fd2, reference, len);
+
+  assert(memcmp(chunked, reference, len) == 0);
+}
+
+int main() {
+    EM_ASM(
+        window._cvmfs_testname = 'read chunked';
+
+        window.chunk1_hash = '351a9a9eab9dd70db33313ac3f2252368d6a0703';
+        window.chunk2_hash = '45eeb4548a9d37431fff7efff7e1d210e73721b5';
+        window.chunk3_hash = 'aee1af0b73f2da4ce6dd0ae93ab45fe9966d0101';
+    );
+
+    read_till_length(FILE_SIZE);
+
+    EM_ASM(
+        window._cvmfs_clearHashesLog();
+    );
+
+    read_till_length(CHUNK1);
+
+    EM_ASM(
+        window._cvmfs_checkHashesLog(
+          [window.chunk1_hash]
+        );
+        window._cvmfs_clearHashesLog();
+    );
+
+    read_till_length(CHUNK1 + CHUNK2 + 1);
+
+    EM_ASM(
+        window._cvmfs_checkHashesLog(
+          [window.chunk1_hash, window.chunk2_hash, window.chunk3_hash]
+        );
+        window._cvmfs_clearHashesLog();
+    );
+
+    return 0;
+}
