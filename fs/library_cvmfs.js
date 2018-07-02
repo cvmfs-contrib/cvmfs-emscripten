@@ -94,6 +94,11 @@ mergeInto(LibraryManager.library, {
         const node = CVMFS.createNode(parent, name, mode);
         node.cvmfs_flags = flags;
 
+        if (flags & cvmfs.ENTRY_TYPE.NEST_TRANS) {
+          const hash = parent.repo.getNestedCatalogHash(parent.catalog, path);
+          node.catalog = parent.repo.getCatalog(hash);
+        }
+
         return node;
       },
       readdir: function(node) {

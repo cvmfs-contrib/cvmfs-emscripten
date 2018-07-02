@@ -175,6 +175,14 @@ cvmfs.repo.prototype = {
 
     return result[0].values[0][0];
   },
+  getNestedCatalogHash: function(catalog, path) {
+    const query = 'SELECT sha1 FROM nested_catalogs WHERE path = "' + path + '"';
+
+    const result = catalog.exec(query);
+    if (result[0] === undefined) return null;
+
+    return new cvmfs.util.hash(result[0].values[0][0]);
+  },
   getManifest: function() { return this._manifest; },
   getWhitelist: function() { return this._whitelist; },
   getCertificate: function() { return this._cert; }

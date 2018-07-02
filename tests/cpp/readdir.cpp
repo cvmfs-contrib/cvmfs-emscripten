@@ -45,5 +45,11 @@ int main() {
     };
     check_entries(subdir, subdir_entries);
 
+    const string nested = "/cvmfs/emscripten.cvmfs.io/test/nested";
+    const unordered_set<string> nested_entries = {
+      "regular_nested"
+    };
+    check_entries(nested, nested_entries);
+
     return 0;
 }
