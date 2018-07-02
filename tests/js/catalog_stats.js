@@ -4,8 +4,9 @@ tests.runTest(function test_getCatalogStats() {
   const base_url = 'http://hepvm.cern.ch/cvmfs';
   const repo_name = 'emscripten.cvmfs.io';
   const repo = new cvmfs.repo(base_url, repo_name);
+  const catalog = repo.getCatalog(repo.getManifest().catalog_hash);
 
-  const stats = repo.getCatalogStats();
+  const stats = repo.getCatalogStats(catalog);
 
   [
     'self_chunked',

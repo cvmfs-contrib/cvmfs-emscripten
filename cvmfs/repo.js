@@ -53,49 +53,39 @@ cvmfs.COMPRESSION_ALG = Object.freeze({
 });
 
 cvmfs.repo.prototype = {
-  _catalog: null,
-  _catalog_stats: null,
-  _catalog_properties: null,
-  _getCatalog: function() {
-    if (this._catalog === null) {
-      this._catalog = cvmfs.retriever.fetchCatalog(this._data_url, this._manifest.catalog_hash);
-    }
-    return this._catalog;
+  getCatalog: function(hash) {
+    return cvmfs.retriever.fetchCatalog(this._data_url, hash);
   },
-  getCatalogStats: function() {
-    if (this._catalog_stats === null) {
-      const catalog = this._getCatalog();
-      const result = catalog.exec('SELECT * FROM STATISTICS')[0].values;
+  getCatalogStats: function(catalog) {
+    const result = catalog.exec('SELECT * FROM STATISTICS')[0].values;
 
-      this._catalog_stats = {};
-      for (const row of result) {
-        const counter = row[0];
-        const value = row[1];
-        this._catalog_stats[counter] = value;
-      }
+    const catalog_stats = {};
+    for (const row of result) {
+      const counter = row[0];
+      const value = row[1];
+      catalog_stats[counter] = value;
     }
-    return this._catalog_stats;
+
+    return catalog_stats;
   },
-  getCatalogProperties: function() {
-    if (this._catalog_properties === null) {
-      const catalog = this._getCatalog();
-      const result = catalog.exec('SELECT * FROM PROPERTIES')[0].values;
+  getCatalogProperties: function(catalog) {
+    const result = catalog.exec('SELECT * FROM PROPERTIES')[0].values;
 
-      this._catalog_properties = {};
-      for (const row of result) {
-        const counter = row[0];
+    const catalog_properties = {};
+    for (const row of result) {
+      const counter = row[0];
 
-        var value = row[1];
-        if (/^\d+$/.test(value)) { // if value is base-10 integer
-          value = parseInt(value);
-        } else if (/^\d+\.?\d*$/.test(value)) { // if value is float
-          value = parseFloat(value);
-        }
-
-        this._catalog_properties[counter] = value;
+      var value = row[1];
+      if (/^\d+$/.test(value)) { // if value is base-10 integer
+        value = parseInt(value);
+      } else if (/^\d+\.?\d*$/.test(value)) { // if value is float
+        value = parseFloat(value);
       }
+
+      catalog_properties[counter] = value;
     }
-    return this._catalog_properties;
+
+    return catalog_properties;
   },
   _md5PairFromPath: function(path) {
     const md5hex = cvmfs.util.digestString(path, 'md5');
@@ -112,29 +102,29 @@ cvmfs.repo.prototype = {
       high: '0x' + bytes.slice(bytes.length/2).join('')
     };
   },
-  getFlagsForPath: function(path) {
+  getFlagsForPath: function(catalog, path) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT flags FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
 
-    const result = this._getCatalog().exec(query);
+    const result = catalog.exec(query);
     if (result[0] === undefined) return null;
 
     return result[0].values[0][0];
   },
-  getNamesForParentPath: function(path) {
+  getNamesForParentPath: function(catalog, path) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT name FROM catalog WHERE parent_1 = ' + pair.high + ' AND parent_2 = ' + pair.low;
 
-    const result = this._getCatalog().exec(query);
+    const result = catalog.exec(query);
     if (result[0] === undefined) return null;
 
     return result[0].values.map(e => e[0]);
   },
-  getContentForRegularFile: function(path, flags) {
+  getContentForRegularFile: function(catalog, path, flags) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT hex(hash) FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
 
-    const result = this._getCatalog().exec(query);
+    const result = catalog.exec(query);
     if (result[0] === undefined) return null;
 
     let hash_str = result[0].values[0][0].toLowerCase();
@@ -146,7 +136,7 @@ cvmfs.repo.prototype = {
 
     return cvmfs.retriever.fetchChunk(this._data_url, hash, decompress);
   },
-  getChunksWithinRangeForPath: function(low, high, path, flags) {
+  getChunksWithinRangeForPath: function(catalog, path, flags, low, high) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT hex(hash), size FROM chunks WHERE'
                   + ' md5path_1 = ' + pair.high
@@ -155,7 +145,7 @@ cvmfs.repo.prototype = {
                   + ' AND (offset + size) >= ' + low
                   + ' ORDER BY ' + 'offset';
 
-    const result = this._getCatalog().exec(query);
+    const result = catalog.exec(query);
     if (result[0] === undefined) return null;
 
     const should_decompress = !(flags & cvmfs.COMPRESSION_ALG.NO_COMPRESSION);
@@ -176,11 +166,11 @@ cvmfs.repo.prototype = {
 
     return chunks;
   },
-  getSymlinkForPath: function(path) {
+  getSymlinkForPath: function(catalog, path) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT symlink FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
 
-    const result = this._getCatalog().exec(query);
+    const result = catalog.exec(query);
     if (result[0] === undefined) return null;
 
     return result[0].values[0][0];

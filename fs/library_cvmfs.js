@@ -15,10 +15,8 @@ mergeInto(LibraryManager.library, {
       console.log(whitelist);
       console.log(certificate);
 
-      console.log(repo.getCatalogStats());
-      console.log(repo.getCatalogProperties());
-
       const node = CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
+      node.catalog = repo.getCatalog(manifest.catalog_hash);
       node.repo = repo;
 
       return node;
@@ -65,7 +63,10 @@ mergeInto(LibraryManager.library, {
         node.stream_ops = CVMFS.ops_table.link.stream;
       }
 
-      if (parent !== null) node.repo = parent.repo;
+      if (parent !== null) {
+        node.catalog = parent.catalog;
+        node.repo = parent.repo;
+      }
 
       return node;
     },
@@ -78,7 +79,7 @@ mergeInto(LibraryManager.library, {
       },
       lookup: function(parent, name) {
         const path = CVMFS.getRelativePath(parent, name);
-        const flags = parent.repo.getFlagsForPath(path);
+        const flags = parent.repo.getFlagsForPath(parent.catalog, path);
 
         var mode = 511;
         if (flags & cvmfs.ENTRY_TYPE.SYMB_LINK)
@@ -98,7 +99,7 @@ mergeInto(LibraryManager.library, {
       readdir: function(node) {
         if (node.cvmfs_entries === undefined) {
           const path = FS.getPath(node).replace(node.mount.mountpoint, '');
-          const entries = node.repo.getNamesForParentPath(path);
+          const entries = node.repo.getNamesForParentPath(node.catalog, path);
           if (entries === null)
             throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
           node.cvmfs_entries = entries;
@@ -109,7 +110,7 @@ mergeInto(LibraryManager.library, {
       readlink: function(node) {
         if (node.cvmfs_symlink === undefined) {
           const path = FS.getPath(node).replace(node.mount.mountpoint, '');
-          node.cvmfs_symlink = node.repo.getSymlinkForPath(path);
+          node.cvmfs_symlink = node.repo.getSymlinkForPath(node.catalog, path);
         }
 
         const re = /\$\(([^\$\(\)]*)\)/;
@@ -139,7 +140,7 @@ mergeInto(LibraryManager.library, {
         if (flags & cvmfs.ENTRY_TYPE.CHUNKD) {
           const lb = position;
           const ub = position + length - 1;
-          const chunks = node.repo.getChunksWithinRangeForPath(lb, ub, path, flags);
+          const chunks = node.repo.getChunksWithinRangeForPath(node.catalog, path, flags, lb, ub);
 
           let total_chunk_len = 0;
           chunks.forEach(e => {
@@ -156,7 +157,7 @@ mergeInto(LibraryManager.library, {
             bytes_read += size;
           });
         } else {
-          const content = node.repo.getContentForRegularFile(path, node.cvmfs_flags);
+          const content = node.repo.getContentForRegularFile(node.catalog, path, node.cvmfs_flags);
 
           if (content === null || position >= content.length)
             return 0;
