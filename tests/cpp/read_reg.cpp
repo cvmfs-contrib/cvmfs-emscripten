@@ -41,6 +41,7 @@ int main() {
       { .path = "empty",                 .contents = "" },
       { .path = "subdir/regular_subdir", .contents = "" },
       { .path = "nested/regular_nested", .contents = "" },
+      { .path = "nested/deep-nested/regular_deep_nested", .contents = "regular_nested" },
     };
 
     const string prefix = "/cvmfs/emscripten.cvmfs.io/test/";

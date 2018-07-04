@@ -47,9 +47,15 @@ int main() {
 
     const string nested = "/cvmfs/emscripten.cvmfs.io/test/nested";
     const unordered_set<string> nested_entries = {
-      "regular_nested"
+      "regular_nested", "chunked-mini", "deep-nested"
     };
     check_entries(nested, nested_entries);
+
+    const string deep_nested = "/cvmfs/emscripten.cvmfs.io/test/nested/deep-nested";
+    const unordered_set<string> deep_nested_entries = {
+      "regular_deep_nested"
+    };
+    check_entries(deep_nested, deep_nested_entries);
 
     return 0;
 }
