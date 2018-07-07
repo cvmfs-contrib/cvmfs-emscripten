@@ -6,7 +6,11 @@
 
 using namespace std;
 
-void check_entries(const string& dirpath, const unordered_set<string>& entries) {
+void check_entries(
+  const string& dirpath,
+  const unordered_set<string>& entries,
+  const bool is_root = false) {
+
     DIR *dir;
     struct dirent *ent;
     int found;
@@ -17,6 +21,9 @@ void check_entries(const string& dirpath, const unordered_set<string>& entries) 
     found = 0;
     while ((ent = readdir(dir)) != NULL) {
       string entry = ent->d_name;
+
+      if (is_root)
+        assert(entry != ".cvmfs");
 
       if (entries.find(entry) != entries.end()
           || entry == "."
@@ -31,6 +38,12 @@ int main() {
     EM_ASM(
         window._cvmfs_testname = 'readdir';
     );
+
+    const string rootdir = "/cvmfs/emscripten.cvmfs.io";
+    const unordered_set<string> rootdir_entries = {
+      "test"
+    };
+    check_entries(rootdir, rootdir_entries, true);
 
     const string testdir = "/cvmfs/emscripten.cvmfs.io/test";
     const unordered_set<string> testdir_entries = {

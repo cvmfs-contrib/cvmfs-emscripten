@@ -104,7 +104,8 @@ mergeInto(LibraryManager.library, {
       readdir: function(node) {
         if (node.cvmfs_entries === undefined) {
           const path = FS.getPath(node).replace(node.mount.mountpoint, '');
-          const entries = node.repo.getNamesForParentPath(node.catalog, path);
+          const entries = node.repo.getEntriesForParentPath(node.catalog, path);
+
           if (entries === null)
             throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
           node.cvmfs_entries = entries;

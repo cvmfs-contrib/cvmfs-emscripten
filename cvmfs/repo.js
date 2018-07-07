@@ -38,7 +38,8 @@ cvmfs.ENTRY_TYPE = Object.freeze({
   REG: 4,
   SYMB_LINK: 8,
   NEST_ROOT: 32,
-  CHUNKD: 64
+  CHUNKD: 64,
+  HIDDEN: 1 << 15
 });
 
 // Bit flags
@@ -111,14 +112,19 @@ cvmfs.repo.prototype = {
 
     return result[0].values[0][0];
   },
-  getNamesForParentPath: function(catalog, path) {
+  getEntriesForParentPath: function(catalog, path) {
     const pair = this._md5PairFromPath(path);
-    const query = 'SELECT name FROM catalog WHERE parent_1 = ' + pair.high + ' AND parent_2 = ' + pair.low;
+    const query = 'SELECT name, flags FROM catalog WHERE parent_1 = ' + pair.high + ' AND parent_2 = ' + pair.low;
 
     const result = catalog.exec(query);
     if (result[0] === undefined) return null;
 
-    return result[0].values.map(e => e[0]);
+    const entries = [];
+    for (const row of result[0].values) {
+      if (!(row[1] & cvmfs.ENTRY_TYPE.HIDDEN))
+        entries.push(row[0]);
+    }
+    return entries;
   },
   getContentForRegularFile: function(catalog, path, flags) {
     const pair = this._md5PairFromPath(path);
