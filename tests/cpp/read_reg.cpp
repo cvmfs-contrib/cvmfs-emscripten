@@ -44,10 +44,12 @@ int main() {
       { .path = "nested/deep-nested/regular_deep_nested", .contents = "regular_nested" },
     };
 
-    const string prefix = "/cvmfs/emscripten.cvmfs.io/test/";
+    const string root_testdir = "/cvmfs/emscripten.cvmfs.io/test/";
+    const string snapshot_testdir = "/cvmfs/emscripten.cvmfs.io/.cvmfs/snapshots/generic-2018-07-06T06:17:36Z/test/";
+
     for (auto& test_file : test_files) {
-      const string path = prefix + test_file.path;
-      check_contents(path, test_file.contents);
+      check_contents(root_testdir + test_file.path, test_file.contents);
+      check_contents(snapshot_testdir + test_file.path, test_file.contents);
     }
 
     return 0;

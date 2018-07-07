@@ -66,19 +66,28 @@ mergeInto(LibraryManager.library, {
       if (parent !== null) {
         node.catalog = parent.catalog;
         node.repo = parent.repo;
+        node.cvmfs_bindpoint = parent.cvmfs_bindpoint;
       }
 
       return node;
     },
-    getRelativePath: function(parent, name) {
-      return PATH.join(FS.getPath(parent), name).replace(parent.mount.mountpoint, '');
+    getRelativePath: function(node, path) {
+      if (path === undefined)
+        path = FS.getPath(node);
+
+      if (node.cvmfs_bindpoint !== undefined)
+        path = path.replace(node.cvmfs_bindpoint, '');
+      else
+        path = path.replace(node.mount.mountpoint, '');
+
+      return path;
     },
     node_ops: {
       getattr: function(node) {
         throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
       },
       lookup: function(parent, name) {
-        const path = CVMFS.getRelativePath(parent, name);
+        const path = CVMFS.getRelativePath(parent, PATH.join(FS.getPath(parent), name));
         const flags = parent.repo.getFlagsForPath(parent.catalog, path);
 
         var mode = 511;
@@ -97,13 +106,18 @@ mergeInto(LibraryManager.library, {
         if (flags & cvmfs.ENTRY_TYPE.NEST_TRANS) {
           const hash = parent.repo.getNestedCatalogHash(parent.catalog, path);
           node.catalog = parent.repo.getCatalog(hash);
+        } else if (flags & cvmfs.ENTRY_TYPE.BIND_MOUNT) {
+          const hash = parent.repo.getBindMountpointHash(parent.catalog, path);
+          node.catalog = parent.repo.getCatalog(hash);
+
+          node.cvmfs_bindpoint = PATH.join(FS.getPath(parent), name);
         }
 
         return node;
       },
       readdir: function(node) {
         if (node.cvmfs_entries === undefined) {
-          const path = FS.getPath(node).replace(node.mount.mountpoint, '');
+          const path = CVMFS.getRelativePath(node);
           const entries = node.repo.getEntriesForParentPath(node.catalog, path);
 
           if (entries === null)
@@ -115,7 +129,7 @@ mergeInto(LibraryManager.library, {
       },
       readlink: function(node) {
         if (node.cvmfs_symlink === undefined) {
-          const path = FS.getPath(node).replace(node.mount.mountpoint, '');
+          const path = CVMFS.getRelativePath(node);
           node.cvmfs_symlink = node.repo.getSymlinkForPath(node.catalog, path);
         }
 
@@ -140,7 +154,7 @@ mergeInto(LibraryManager.library, {
       read: function(stream, buffer, offset, length, position) {
         const node = stream.node;
         const flags = node.cvmfs_flags;
-        const path = FS.getPath(node).replace(node.mount.mountpoint, '');
+        const path = CVMFS.getRelativePath(node);
         let bytes_read = 0;
 
         if (flags & cvmfs.ENTRY_TYPE.CHUNKD) {

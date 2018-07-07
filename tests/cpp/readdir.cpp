@@ -66,16 +66,21 @@ int main() {
       {
         .path = "test/nested/deep-nested",
         .entries = { "regular_deep_nested" }
-      }
+      },
+      {
+        .path = ".cvmfs",
+        .entries = { "snapshots" }
+      },
     };
 
     const string rootdir = "/cvmfs/emscripten.cvmfs.io/";
+    const string snapshot = "/cvmfs/emscripten.cvmfs.io/.cvmfs/snapshots/generic-2018-07-06T06:17:36Z/";
 
     for (auto& testdir : testdirs) {
-      const string path = rootdir + testdir.path;
       const bool is_root = testdir.path == "";
 
-      check_entries(path, testdir.entries, is_root);
+      check_entries(rootdir + testdir.path, testdir.entries, is_root);
+      check_entries(snapshot + testdir.path, testdir.entries, is_root);
     }
 
     return 0;

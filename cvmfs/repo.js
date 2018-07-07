@@ -39,6 +39,7 @@ cvmfs.ENTRY_TYPE = Object.freeze({
   SYMB_LINK: 8,
   NEST_ROOT: 32,
   CHUNKD: 64,
+  BIND_MOUNT: 1 << 14,
   HIDDEN: 1 << 15
 });
 
@@ -183,6 +184,14 @@ cvmfs.repo.prototype = {
   },
   getNestedCatalogHash: function(catalog, path) {
     const query = 'SELECT sha1 FROM nested_catalogs WHERE path = "' + path + '"';
+
+    const result = catalog.exec(query);
+    if (result[0] === undefined) return null;
+
+    return new cvmfs.util.hash(result[0].values[0][0]);
+  },
+  getBindMountpointHash: function(catalog, path) {
+    const query = 'SELECT sha1 FROM bind_mountpoints WHERE path = "' + path + '"';
 
     const result = catalog.exec(query);
     if (result[0] === undefined) return null;
