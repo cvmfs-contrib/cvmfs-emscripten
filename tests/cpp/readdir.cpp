@@ -1,6 +1,7 @@
 #include <cassert>
 #include <string>
 #include <unordered_set>
+#include <vector>
 #include <dirent.h>
 #include <emscripten.h>
 
@@ -34,41 +35,48 @@ void check_entries(
     assert(found == (entries.size() + 2));
 }
 
+struct test_dir {
+  string path;
+  unordered_set<string> entries;
+};
+
 int main() {
     EM_ASM(
         window._cvmfs_testname = 'readdir';
     );
 
-    const string rootdir = "/cvmfs/emscripten.cvmfs.io";
-    const unordered_set<string> rootdir_entries = {
-      "test"
+    const vector<test_dir> testdirs = {
+      {
+        .path = "",
+        .entries = { "test" }
+      },
+      {
+        .path = "test",
+        .entries = { "symlink", "varlink", "shake-128", "uncompressed",
+                     "chunked", "regular", "empty", "subdir", "nested" }
+      },
+      {
+        .path = "test/subdir",
+        .entries = { "regular_subdir" }
+      },
+      {
+        .path = "test/nested",
+        .entries = { "regular_nested", "chunked-mini", "deep-nested" }
+      },
+      {
+        .path = "test/nested/deep-nested",
+        .entries = { "regular_deep_nested" }
+      }
     };
-    check_entries(rootdir, rootdir_entries, true);
 
-    const string testdir = "/cvmfs/emscripten.cvmfs.io/test";
-    const unordered_set<string> testdir_entries = {
-      "symlink", "varlink", "shake-128", "uncompressed",
-      "chunked", "regular", "empty", "subdir", "nested"
-    };
-    check_entries(testdir, testdir_entries);
+    const string rootdir = "/cvmfs/emscripten.cvmfs.io/";
 
-    const string subdir = "/cvmfs/emscripten.cvmfs.io/test/subdir";
-    const unordered_set<string> subdir_entries = {
-      "regular_subdir"
-    };
-    check_entries(subdir, subdir_entries);
+    for (auto& testdir : testdirs) {
+      const string path = rootdir + testdir.path;
+      const bool is_root = testdir.path == "";
 
-    const string nested = "/cvmfs/emscripten.cvmfs.io/test/nested";
-    const unordered_set<string> nested_entries = {
-      "regular_nested", "chunked-mini", "deep-nested"
-    };
-    check_entries(nested, nested_entries);
-
-    const string deep_nested = "/cvmfs/emscripten.cvmfs.io/test/nested/deep-nested";
-    const unordered_set<string> deep_nested_entries = {
-      "regular_deep_nested"
-    };
-    check_entries(deep_nested, deep_nested_entries);
+      check_entries(path, testdir.entries, is_root);
+    }
 
     return 0;
 }
