@@ -13,29 +13,31 @@
 
 #define FILE_SIZE (CHUNK1 + CHUNK2 + CHUNK3 + CHUNK4 + CHUNK5)
 
-void check_till_length(const char* file, const size_t len) {
+void check_range(const char* file, const size_t off, const size_t len) {
   char reference[FILE_SIZE] = {0};
   char chunked[FILE_SIZE] = {0};
   int fd1, fd2, bytes_read;
 
   fd1 = open(file, O_RDONLY);
   assert(fd1 != -1);
+  assert(lseek(fd1, off, SEEK_SET) == off);
   assert(read(fd1, chunked, len) == len);
 
   fd2 = open("data/chunked-mini", O_RDONLY);
+  assert(lseek(fd2, off, SEEK_SET) == off);
   read(fd2, reference, len);
 
   assert(memcmp(chunked, reference, len) == 0);
 }
 
 void check_chunked_read(const char *file) {
-  check_till_length(file, FILE_SIZE);
+  check_range(file, 0, FILE_SIZE);
 
   EM_ASM(
       window._cvmfs_clearHashesLog();
   );
 
-  check_till_length(file, CHUNK1);
+  check_range(file, 0, CHUNK1);
 
   EM_ASM(
       window._cvmfs_checkHashesLog(
@@ -44,7 +46,7 @@ void check_chunked_read(const char *file) {
       window._cvmfs_clearHashesLog();
   );
 
-  check_till_length(file, CHUNK1 + CHUNK2 + 1);
+  check_range(file, 0, CHUNK1 + CHUNK2 + 1);
 
   EM_ASM(
       window._cvmfs_checkHashesLog(

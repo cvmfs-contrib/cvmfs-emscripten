@@ -37,7 +37,8 @@ mergeInto(LibraryManager.library, {
               getattr: CVMFS.node_ops.getattr
             },
             stream: {
-              read: CVMFS.stream_ops.read
+              read: CVMFS.stream_ops.read,
+              llseek: CVMFS.stream_ops.llseek,
             }
           },
           link: {
@@ -134,6 +135,9 @@ mergeInto(LibraryManager.library, {
     stream_ops: {
       read: function(stream, buffer, offset, length, position) {
         return cvmfs_methods.read(stream, buffer, offset, length, position);
+      },
+      llseek: function(stream, offset, whence) {
+        return cvmfs_methods.llseek(stream, offset, whence);
       }
     },
     symlink_vars: {},
