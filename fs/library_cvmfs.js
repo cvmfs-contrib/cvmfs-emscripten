@@ -84,26 +84,14 @@ mergeInto(LibraryManager.library, {
       return path;
     },
     node_ops: {
-      getattr: function(node) {
-        throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
-      },
       lookup: function(parent, name) {
         const path = CVMFS.getRelativePath(parent, PATH.join(FS.getPath(parent), name));
-        const flags = parent.repo.getFlagsForPath(parent.catalog, path);
+        const statinfo = parent.repo.getStatInfoForPath(parent.catalog, path);
 
-        var mode = 511;
-        if (flags & cvmfs.ENTRY_TYPE.SYMB_LINK)
-          mode |= {{{ cDefine('S_IFLNK') }}};
-        else if (flags & cvmfs.ENTRY_TYPE.REG)
-          mode |= {{{ cDefine('S_IFREG') }}};
-        else if (flags & cvmfs.ENTRY_TYPE.DIR)
-          mode |= {{{ cDefine('S_IFDIR') }}};
-        else
-          throw new FS.ErrnoError(ERRNO_CODES.ENOSYS);
+        const node = CVMFS.createNode(parent, name, statinfo.mode);
+        node.cvmfs_statinfo = statinfo;
 
-        const node = CVMFS.createNode(parent, name, mode);
-        node.cvmfs_flags = flags;
-
+        const flags = node.cvmfs_statinfo.flags;
         if (flags & cvmfs.ENTRY_TYPE.NEST_TRANS) {
           const hash = parent.repo.getNestedCatalogHash(parent.catalog, path);
           node.catalog = parent.repo.getCatalog(hash);
@@ -130,6 +118,9 @@ mergeInto(LibraryManager.library, {
       },
       readlink: function(node) {
         return cvmfs_methods.readlink(node);
+      },
+      getattr: function(node) {
+        return cvmfs_methods.getattr(node);
       }
     },
     stream_ops: {

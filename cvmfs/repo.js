@@ -104,15 +104,6 @@ cvmfs.repo.prototype = {
       high: '0x' + bytes.slice(bytes.length/2).join('')
     };
   },
-  getFlagsForPath: function(catalog, path) {
-    const pair = this._md5PairFromPath(path);
-    const query = 'SELECT flags FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
-
-    const result = catalog.exec(query);
-    if (result[0] === undefined) return null;
-
-    return result[0].values[0][0];
-  },
   getEntriesForParentPath: function(catalog, path) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT name, flags FROM catalog WHERE parent_1 = ' + pair.high + ' AND parent_2 = ' + pair.low;
@@ -181,6 +172,25 @@ cvmfs.repo.prototype = {
     if (result[0] === undefined) return null;
 
     return result[0].values[0][0];
+  },
+  getStatInfoForPath: function(catalog, path) {
+    const pair = this._md5PairFromPath(path);
+    const query = 'SELECT uid, gid, size, mtime, mode, flags ' +
+      'FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
+
+    const result = catalog.exec(query);
+    if (result[0] === undefined) return null;
+
+    const row = result[0].values[0];
+    
+    return {
+      uid: row[0],
+      gid: row[1],
+      size: row[2],
+      mtime: row[3],
+      mode: row[4],
+      flags: row[5]
+    };
   },
   getNestedCatalogHash: function(catalog, path) {
     const query = 'SELECT sha1 FROM nested_catalogs WHERE path = "' + path + '"';

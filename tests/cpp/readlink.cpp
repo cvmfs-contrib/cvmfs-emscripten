@@ -60,7 +60,7 @@ int main() {
         window._cvmfs_testname = 'readlink';
     );
 
-    //check_symlinks("/cvmfs/emscripten.cvmfs.io/");
+    check_symlinks("/cvmfs/emscripten.cvmfs.io/");
     check_symlinks("/cvmfs/emscripten.cvmfs.io/.cvmfs/snapshots/generic-2018-07-06T06:17:36Z/");
 
     return 0;
