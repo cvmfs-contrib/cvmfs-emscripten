@@ -35,6 +35,8 @@ void check_chunked_read(const char *file) {
 
   EM_ASM(
       window._cvmfs_clearHashesLog();
+
+      localStorage.clear();
   );
 
   check_range(file, 0, CHUNK1);
@@ -44,6 +46,8 @@ void check_chunked_read(const char *file) {
         [window.chunk1_hash]
       );
       window._cvmfs_clearHashesLog();
+
+      localStorage.clear();
   );
 
   check_range(file, 0, CHUNK1 + CHUNK2 + 1);
@@ -52,7 +56,6 @@ void check_chunked_read(const char *file) {
       window._cvmfs_checkHashesLog(
         [window.chunk1_hash, window.chunk2_hash, window.chunk3_hash]
       );
-      window._cvmfs_clearHashesLog();
   );
 }
 
