@@ -1,10 +1,20 @@
 cvmfs.retriever.download = function(url) {
-  const request = new XMLHttpRequest();
-  request.open('GET', url, false);
-  request.overrideMimeType("text/plain; charset=x-user-defined");
-  request.send(null);
+  var responseText = cvmfs.cache.get(url);
 
-  if (request.status === 200) return request.responseText;
+  if (responseText === null) {
+    const request = new XMLHttpRequest();
+    request.open('GET', url, false);
+    request.overrideMimeType("text/plain; charset=x-user-defined");
+    request.send(null);
+
+    if (request.status !== 200)
+      return null;
+
+    responseText = request.responseText;
+    cvmfs.cache.set(url, responseText);
+  }
+
+  return responseText;
 };
 
 cvmfs.retriever.downloadManifest = function(repo_url) {
@@ -19,14 +29,7 @@ cvmfs.retriever.downloadWhitelist = function(repo_url) {
 
 cvmfs.retriever.downloadChunk = function(data_url, hash, suffix='') {
   const url = [data_url, '/', hash.substr(0, 2), '/', hash.substr(2), suffix].join('');
-
-  var chunk = cvmfs.cache.get(url);
-  if (chunk === null) {
-    chunk = this.download(url);
-    cvmfs.cache.set(url, chunk);
-  }
-
-  return chunk;
+  return this.download(url);
 };
 
 cvmfs.retriever.downloadCertificate = function(data_url, hash) {
