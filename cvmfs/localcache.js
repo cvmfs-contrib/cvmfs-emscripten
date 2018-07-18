@@ -1,10 +1,20 @@
-cvmfs.cache.set = function(key_str, val_str) {
-	if (cvmfs.cache.text_encoder === undefined)
-    	cvmfs.cache.text_encoder = new TextEncoder();
-	const buffer = cvmfs.cache.text_encoder.encode(val_str);
+cvmfs.cache.localstorage_chunk_limit = 1024 * 1024;
 
-	const base64 = cvmfs.cache.bufferToString(buffer);
-	localStorage.setItem(key_str, base64);
+cvmfs.cache.set = function(key_str, val_str) {
+	if (val_str.length > this.localstorage_chunk_limit)
+		return;
+
+	if (this.text_encoder === undefined)
+		this.text_encoder = new TextEncoder();
+	const buffer = this.text_encoder.encode(val_str);
+
+	const base64 = this.bufferToString(buffer);
+
+	try {
+		localStorage.setItem(key_str, base64);
+	} catch (e) {
+		console.log(e);
+	}
 };
 
 cvmfs.cache.get = function(key_str) {
@@ -12,11 +22,11 @@ cvmfs.cache.get = function(key_str) {
 	if (base64 === null)
 		return null;
 
-	const buffer = cvmfs.cache.stringToBuffer(base64);
+	const buffer = this.stringToBuffer(base64);
 
-	if (cvmfs.cache.text_decoder === undefined)
-    	cvmfs.cache.text_decoder = new TextDecoder();
-    return cvmfs.cache.text_decoder.decode(buffer);
+	if (this.text_decoder === undefined)
+		this.text_decoder = new TextDecoder();
+    return this.text_decoder.decode(buffer);
 };
 
 /// ----
