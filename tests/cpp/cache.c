@@ -1,35 +1,26 @@
 #include <assert.h>
 #include <emscripten.h>
 #include <fcntl.h>
-#include <string>
 #include <string.h>
 #include <unistd.h>
-#include <vector>
-
-using namespace std;
 
 #define BUF_SIZE 64
 
 void check_regular() {
-  const string path = "/cvmfs/emscripten.cvmfs.io/test/regular";
-  const string contents = "content\n";
+  const char contents[] = "content\n";
+  const size_t contents_len = strlen(contents);
 
   char buf[BUF_SIZE] = {0};
   int fd, bytes_read;
 
-  fd = open(path.c_str(), O_RDONLY);
+  fd = open("/cvmfs/emscripten.cvmfs.io/test/regular", O_RDONLY);
   assert(fd != -1);
 
-  bytes_read = read(fd, buf, contents.size());
-  assert(bytes_read == contents.size());
+  bytes_read = read(fd, buf, contents_len);
+  assert(bytes_read == contents_len);
 
-  assert(strcmp(buf, contents.c_str()) == 0);
+  assert(strcmp(buf, contents) == 0);
 }
-
-struct test_file {
-  string path;
-  string contents;
-};
 
 int main() {
     EM_ASM(
