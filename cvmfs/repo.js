@@ -1,12 +1,12 @@
 cvmfs.repo = function(base_url, repo_name) {
+  this._repo_name = repo_name;
   this._repo_url = cvmfs.util.repoURL(base_url, repo_name);
   this._data_url = cvmfs.util.dataURL(base_url, repo_name);
-
-  this._manifest = cvmfs.retriever.fetchManifest(this._repo_url, repo_name);
-  this._whitelist = cvmfs.retriever.fetchWhitelist(this._repo_url, repo_name);
+  //console.log(this._repo_url)
+  /*
   this._cert = cvmfs.retriever.fetchCertificate(this._data_url, this._manifest.cert_hash);
 
-  /* verify whitelist signature */
+  /* verify whitelist signature 
   var whitelist_verified = false;
   const master_keys = cvmfs.getMasterKeys();
   for (const key of master_keys) {
@@ -18,17 +18,17 @@ cvmfs.repo = function(base_url, repo_name) {
   }
   if (!whitelist_verified) return undefined;
 
-  /* verify certificate fingerprint */
+  /* verify certificate fingerprint 
   const now = new Date();
   if (now >= this._whitelist.expiry_date) return undefined;
   const fingerprint = cvmfs.util.digestHex(this._cert.hex, this._whitelist.cert_fp.alg);
   if (fingerprint !== this._whitelist.cert_fp.hex) return undefined;
 
-  /* verify manifest signature */
+  /* verify manifest signature 
   const signature = new KJUR.crypto.Signature({alg: 'SHA1withRSA'});
   signature.init(this._cert.getPublicKey());
   signature.updateString(this._manifest.metadata_hash.download_handle);
-  if (!signature.verify(this._manifest.signature_hex)) return undefined;
+  if (!signature.verify(this._manifest.signature_hex)) return undefined;*/
 };
 
 // Bit flags
@@ -55,6 +55,25 @@ cvmfs.COMPRESSION_ALG = Object.freeze({
 });
 
 cvmfs.repo.prototype = {
+  init: function(callback) {
+    //console.log('async=',cvmfs.retriever.async)
+    if (cvmfs.retriever.async) {
+      cvmfs.retriever.fetchManifest(this._repo_url, this._repo_name, (manifest) => {
+        this._manifest = manifest;
+
+        cvmfs.retriever.fetchWhitelist(this._repo_url, this._repo_name, (whitelist) => {
+          this._whitelist = whitelist;
+
+          callback();
+        });
+      });
+    } else {
+      //console.log(' this._manifest=', this._manifest)
+      this._manifest = cvmfs.retriever.fetchManifest(this._repo_url, this._repo_name);
+      //console.log(' this._manifest=', this._manifest)
+      this._whitelist = cvmfs.retriever.fetchWhitelist(this._repo_url, this._repo_name);
+    }
+  },
   getCatalog: function(hash) {
     return cvmfs.retriever.fetchCatalog(this._data_url, hash);
   },

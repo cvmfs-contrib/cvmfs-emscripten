@@ -1,43 +1,76 @@
-cvmfs.retriever.download = function(url) {
+cvmfs.retriever.syncHttpGet = function(url) {
+  const request = new XMLHttpRequest();
+  request.open('GET', url, false);
+  request.overrideMimeType("text/plain; charset=x-user-defined");
+  request.send(null);
+
+  if (request.status !== 200)
+    return null;
+
+  return request.responseText;
+};
+
+cvmfs.retriever.asyncHttpGet = function(url, callback) {
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.overrideMimeType("text/plain; charset=x-user-defined");
+
+  xhr.onload = function(e) {
+    if (xhr.status !== 200)
+      callback(null);
+    else
+      callback(xhr.responseText);
+  };
+
+  xhr.send();
+};
+
+cvmfs.retriever.setAsync = function(async) {
+  this.async = async;
+  if (async === true)
+    this.httpGet = this.asyncHttpGet;
+  else
+    this.httpGet = this.syncHttpGet;
+};
+
+cvmfs.retriever.setAsync(false);
+
+cvmfs.retriever.download = function(url, callback) {
+  return cvmfs.retriever.httpGet(url, callback);
+  /*
   var responseText = cvmfs.cache.get(url);
-
   if (responseText === null) {
-    const request = new XMLHttpRequest();
-    request.open('GET', url, false);
-    request.overrideMimeType("text/plain; charset=x-user-defined");
-    request.send(null);
-
-    if (request.status !== 200)
-      return null;
-
-    responseText = request.responseText;
+    responseText = CVMFS.httpGet(url);
+    if(responseText===undefined){
+      console.log('mayo')
+      throw "mayo";
+    }
     cvmfs.cache.set(url, responseText);
   }
-
-  return responseText;
+  return responseText;*/
 };
 
-cvmfs.retriever.downloadManifest = function(repo_url) {
+cvmfs.retriever.downloadManifest = function(repo_url, callback) {
   const url = repo_url + '/.cvmfspublished';
-  return cvmfs.retriever.download(url);
+  return cvmfs.retriever.download(url, callback);
 };
 
-cvmfs.retriever.downloadWhitelist = function(repo_url) {
+cvmfs.retriever.downloadWhitelist = function(repo_url, callback) {
   const url = repo_url + '/.cvmfswhitelist';
-  return cvmfs.retriever.download(url);
+  return cvmfs.retriever.download(url, callback);
 };
 
 cvmfs.retriever.downloadChunk = function(data_url, hash, suffix='') {
   const url = [data_url, '/', hash.substr(0, 2), '/', hash.substr(2), suffix].join('');
-  return this.download(url);
+  return this.download(url, callback);
 };
 
-cvmfs.retriever.downloadCertificate = function(data_url, hash) {
-  return this.downloadChunk(data_url, hash, 'X');
+cvmfs.retriever.downloadCertificate = function(data_url, hash, callback) {
+  return this.downloadChunk(data_url, hash, 'X', callback);
 };
 
-cvmfs.retriever.downloadCatalog = function(data_url, hash) {
-  return this.downloadChunk(data_url, hash, 'C');
+cvmfs.retriever.downloadCatalog = function(data_url, hash, callback) {
+  return this.downloadChunk(data_url, hash, 'C', callback);
 };
 
 cvmfs.retriever.parseManifest = function(data, repo_name) {
@@ -112,9 +145,16 @@ cvmfs.retriever.parseManifest = function(data, repo_name) {
   return manifest;
 };
 
-cvmfs.retriever.fetchManifest = function(repo_url, repo_name) {
-  const manifest_raw = cvmfs.retriever.downloadManifest(repo_url);
-  return cvmfs.retriever.parseManifest(manifest_raw, repo_name);
+cvmfs.retriever.fetchManifest = function(repo_url, repo_name, callback) {
+  if (cvmfs.retriever.async) {
+    cvmfs.retriever.downloadManifest(repo_url, (manifest_raw) => {
+      const manifest = cvmfs.retriever.parseManifest(manifest_raw, repo_name);
+      callback(manifest);
+    });
+  } else {
+    const manifest_raw = cvmfs.retriever.downloadManifest(repo_url);
+    return cvmfs.retriever.parseManifest(manifest_raw, repo_name);
+  }
 };
 
 cvmfs.retriever.parseWhitelist = function(data, repo_name) {
@@ -149,9 +189,16 @@ cvmfs.retriever.parseWhitelist = function(data, repo_name) {
   return whitelist;
 };
 
-cvmfs.retriever.fetchWhitelist = function(repo_url, repo_name) {
-  const data = cvmfs.retriever.downloadWhitelist(repo_url);
-  return cvmfs.retriever.parseWhitelist(data, repo_name);
+cvmfs.retriever.fetchWhitelist = function(repo_url, repo_name, callback) {
+  if (cvmfs.retriever.async) {
+    cvmfs.retriever.downloadWhitelist(repo_url, (data) => {
+      const whitelist = cvmfs.retriever.parseWhitelist(data, repo_name);
+      callback(whitelist);
+    });
+  } else {
+    const data = cvmfs.retriever.downloadWhitelist(repo_url);
+    return cvmfs.retriever.parseWhitelist(data, repo_name);
+  }
 };
 
 cvmfs.retriever.fetchCertificate = function(data_url, cert_hash) {

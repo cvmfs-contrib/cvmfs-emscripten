@@ -57,7 +57,7 @@ if [ $COMPILE -eq 1 ]; then
         fi
 
         $SRC_DIR/$EMC \
-            -s WASM=0 \
+            -s WASM=0 -s EMTERPRETIFY=1 -s EMTERPRETIFY_ASYNC=1 \
             -s NO_EXIT_RUNTIME=0 \
             --shell-file $TEST_DIR/test_container.html \
             --embed-file $TEST_DIR/data@/data \
