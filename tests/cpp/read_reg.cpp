@@ -40,8 +40,8 @@ int main() {
       { .path = "ripemd-160",            .contents = "ripemd-160\n" },
       { .path = "empty",                 .contents = "" },
       { .path = "subdir/regular_subdir", .contents = "" },
-      { .path = "nested/regular_nested", .contents = "" },
-      { .path = "nested/deep-nested/regular_deep_nested", .contents = "regular_nested" },
+      //{ .path = "nested/regular_nested", .contents = "" },
+      //{ .path = "nested/deep-nested/regular_deep_nested", .contents = "regular_nested" },
     };
 
     const string root_testdir = "/cvmfs/emscripten.cvmfs.io/test/";
@@ -49,7 +49,7 @@ int main() {
 
     for (auto& test_file : test_files) {
       check_contents(root_testdir + test_file.path, test_file.contents);
-      check_contents(snapshot_testdir + test_file.path, test_file.contents);
+      //check_contents(snapshot_testdir + test_file.path, test_file.contents);
     }
 
     return 0;

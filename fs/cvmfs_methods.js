@@ -47,11 +47,15 @@ const cvmfs_methods = {
         bytes_read += size;
       });
     } else {
-      const content = node.repo.getContentForRegularFile(node.catalog, path, flags);
+      const content = EmterpreterAsync.handle(function(resume) {
+        node.repo.getContentForRegularFile(node.catalog, path, flags, function(content) {
+          resume(function() { return content; });
+        });
+      });
 
-      if (content === null || position >= content.length)
+      if (content === undefined || content === null || position >= content.length)
         return 0;
-
+      console.log(content)
       const size = Math.min(content.length - position, length);
       buffer.set(content.subarray(position, position + size), offset);
       bytes_read = size;

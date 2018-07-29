@@ -60,7 +60,7 @@ cvmfs.retriever.downloadWhitelist = function(repo_url, callback) {
   return cvmfs.retriever.download(url, callback);
 };
 
-cvmfs.retriever.downloadChunk = function(data_url, hash, suffix='') {
+cvmfs.retriever.downloadChunk = function(data_url, hash, suffix='', callback) {
   const url = [data_url, '/', hash.substr(0, 2), '/', hash.substr(2), suffix].join('');
   return this.download(url, callback);
 };
@@ -201,20 +201,29 @@ cvmfs.retriever.fetchWhitelist = function(repo_url, repo_name, callback) {
   }
 };
 
-cvmfs.retriever.fetchCertificate = function(data_url, cert_hash) {
-  const data = cvmfs.retriever.downloadCertificate(data_url, cert_hash.download_handle);
+cvmfs.retriever.fetchCertificate = function(data_url, cert_hash, callback) {
+  function process_data(data) {
+    const data_hex = cvmfs.util.stringToHex(data);
+    const data_hash = cvmfs.util.digestHex(data_hex, cert_hash.alg);
+    if (data_hash !== cert_hash.hex) return undefined;
 
-  const data_hex = cvmfs.util.stringToHex(data);
-  const data_hash = cvmfs.util.digestHex(data_hex, cert_hash.alg);
-  if (data_hash !== cert_hash.hex) return undefined;
+    const data_deflated = pako.inflate(data);
+    const decoder = new TextDecoder("utf-8");
+    const pem = decoder.decode(data_deflated);
 
-  const data_deflated = pako.inflate(data);
-  const decoder = new TextDecoder("utf-8");
-  const pem = decoder.decode(data_deflated);
+    const certificate = new X509();
+    certificate.readCertPEM(pem);
+    return certificate;
+  }
 
-  const certificate = new X509();
-  certificate.readCertPEM(pem);
-  return certificate;
+  if (callback !== undefined) {
+    cvmfs.retriever.downloadCertificate(data_url, cert_hash.download_handle, function(data) {
+      callback(process_data(data));
+    });
+  } else {
+    const data = cvmfs.retriever.downloadCertificate(data_url, cert_hash.download_handle);
+    return process_data(data);
+  }
 };
 
 cvmfs.retriever.dataIsValid = function(data, hash) {
@@ -223,28 +232,49 @@ cvmfs.retriever.dataIsValid = function(data, hash) {
   return data_hash === hash.hex;
 }
 
-cvmfs.retriever.fetchCatalog = function(data_url, catalog_hash) {
-  const data = cvmfs.retriever.downloadCatalog(data_url, catalog_hash.download_handle);
-
-  if (!cvmfs.retriever.dataIsValid(data, catalog_hash))
+cvmfs.retriever.fetchCatalog = function(data_url, catalog_hash, callback) {
+  function process_data(data) {
+    if (!cvmfs.retriever.dataIsValid(data, catalog_hash))
     return undefined;
 
-  const db_data = pako.inflate(data);
-  return new SQL.Database(db_data);
+    const db_data = pako.inflate(data);
+    return new SQL.Database(db_data);
+  }
+
+  if (callback !== undefined) {
+    cvmfs.retriever.downloadCatalog(data_url, catalog_hash.download_handle, function(data) {
+      callback(process_data(data));
+    });
+  } else {
+    const data = cvmfs.retriever.downloadCatalog(data_url, catalog_hash.download_handle);
+    return process_data(data);
+  }
 };
 
-cvmfs.retriever.fetchChunk = function(data_url, hash, decompress=true, partial=false) {
+cvmfs.retriever.fetchChunk = function(data_url, hash, decompress=true, partial=false, callback) {
   let download_handle = hash.download_handle;
-  if (partial) download_handle += "P";
-  const data = cvmfs.retriever.downloadChunk(data_url, download_handle);
+  if (partial)
+    download_handle += "P";
 
-  if (!cvmfs.retriever.dataIsValid(data, hash))
+  function process_data(data) {
+    if (!cvmfs.retriever.dataIsValid(data, hash))
     return undefined;
 
-  if (decompress)
-    return pako.inflate(data);
+    if (decompress)
+      return pako.inflate(data);
 
-  if (cvmfs.retriever.text_encoder === undefined)
-    cvmfs.retriever.text_encoder = new TextEncoder();
-  return cvmfs.retriever.text_encoder.encode(data);
+    if (cvmfs.retriever.text_encoder === undefined)
+      cvmfs.retriever.text_encoder = new TextEncoder();
+    return cvmfs.retriever.text_encoder.encode(data);
+  }
+
+  if (callback !== undefined) {
+    cvmfs.retriever.downloadChunk(data_url, download_handle, '', function(data) {
+      console.log("data="+data)
+      callback(process_data(data));
+    });
+  } else {
+    const data = cvmfs.retriever.downloadChunk(data_url, download_handle);
+    return process_data(data);
+  }
 };

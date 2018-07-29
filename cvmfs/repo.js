@@ -2,33 +2,6 @@ cvmfs.repo = function(base_url, repo_name) {
   this._repo_name = repo_name;
   this._repo_url = cvmfs.util.repoURL(base_url, repo_name);
   this._data_url = cvmfs.util.dataURL(base_url, repo_name);
-  //console.log(this._repo_url)
-  /*
-  this._cert = cvmfs.retriever.fetchCertificate(this._data_url, this._manifest.cert_hash);
-
-  /* verify whitelist signature 
-  var whitelist_verified = false;
-  const master_keys = cvmfs.getMasterKeys();
-  for (const key of master_keys) {
-    whitelist_verified = key.verifyRawWithMessageHex(
-      cvmfs.util.stringToHex(this._whitelist.metadata_hash.download_handle),
-      this._whitelist.signature_hex
-    );
-    if (whitelist_verified) break;
-  }
-  if (!whitelist_verified) return undefined;
-
-  /* verify certificate fingerprint 
-  const now = new Date();
-  if (now >= this._whitelist.expiry_date) return undefined;
-  const fingerprint = cvmfs.util.digestHex(this._cert.hex, this._whitelist.cert_fp.alg);
-  if (fingerprint !== this._whitelist.cert_fp.hex) return undefined;
-
-  /* verify manifest signature 
-  const signature = new KJUR.crypto.Signature({alg: 'SHA1withRSA'});
-  signature.init(this._cert.getPublicKey());
-  signature.updateString(this._manifest.metadata_hash.download_handle);
-  if (!signature.verify(this._manifest.signature_hex)) return undefined;*/
 };
 
 // Bit flags
@@ -56,7 +29,6 @@ cvmfs.COMPRESSION_ALG = Object.freeze({
 
 cvmfs.repo.prototype = {
   init: function(callback) {
-    //console.log('async=',cvmfs.retriever.async)
     if (cvmfs.retriever.async) {
       cvmfs.retriever.fetchManifest(this._repo_url, this._repo_name, (manifest) => {
         this._manifest = manifest;
@@ -64,18 +36,57 @@ cvmfs.repo.prototype = {
         cvmfs.retriever.fetchWhitelist(this._repo_url, this._repo_name, (whitelist) => {
           this._whitelist = whitelist;
 
-          callback();
+          cvmfs.retriever.fetchCertificate(this._data_url, this._manifest.cert_hash, (cert) => {
+            this._cert = cert;
+
+            callback(this.verify());
+          });
         });
       });
     } else {
-      //console.log(' this._manifest=', this._manifest)
       this._manifest = cvmfs.retriever.fetchManifest(this._repo_url, this._repo_name);
-      //console.log(' this._manifest=', this._manifest)
       this._whitelist = cvmfs.retriever.fetchWhitelist(this._repo_url, this._repo_name);
     }
   },
-  getCatalog: function(hash) {
-    return cvmfs.retriever.fetchCatalog(this._data_url, hash);
+  verify: function() {
+    // verify whitelist signature 
+    var whitelist_verified = false;
+    const master_keys = cvmfs.getMasterKeys();
+    for (const key of master_keys) {
+      whitelist_verified = key.verifyRawWithMessageHex(
+        cvmfs.util.stringToHex(this._whitelist.metadata_hash.download_handle),
+        this._whitelist.signature_hex
+      );
+      if (whitelist_verified) break;
+    }
+    if (!whitelist_verified)
+      return false;
+
+    // verify certificate fingerprint 
+    const now = new Date();
+    if (now >= this._whitelist.expiry_date)
+      return false;
+    const fingerprint = cvmfs.util.digestHex(this._cert.hex, this._whitelist.cert_fp.alg);
+    if (fingerprint !== this._whitelist.cert_fp.hex)
+      return false;
+
+    // verify manifest signature 
+    const signature = new KJUR.crypto.Signature({alg: 'SHA1withRSA'});
+    signature.init(this._cert.getPublicKey());
+    signature.updateString(this._manifest.metadata_hash.download_handle);
+    if (!signature.verify(this._manifest.signature_hex))
+      return false;
+
+    return true;
+  },
+  getCatalog: function(hash, callback) {
+    if (callback !== undefined) {
+      cvmfs.retriever.fetchCatalog(this._data_url, hash, function (catalog) {
+        callback(catalog);
+      });
+    } else {
+      return cvmfs.retriever.fetchCatalog(this._data_url, hash);
+    }
   },
   getCatalogStats: function(catalog) {
     const result = catalog.exec('SELECT * FROM STATISTICS')[0].values;
@@ -137,7 +148,7 @@ cvmfs.repo.prototype = {
     }
     return entries;
   },
-  getContentForRegularFile: function(catalog, path, flags) {
+  getContentForRegularFile: function(catalog, path, flags, callback) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT hex(hash) FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
 
@@ -145,13 +156,21 @@ cvmfs.repo.prototype = {
     if (result[0] === undefined) return null;
 
     let hash_str = result[0].values[0][0].toLowerCase();
-    if (flags & cvmfs.CHUNK_HASH_ALG.SHAKE_128) hash_str += "-shake128";
-    else if (flags & cvmfs.CHUNK_HASH_ALG.RIPEMD_160) hash_str += "-rmd160";
+    if (flags & cvmfs.CHUNK_HASH_ALG.SHAKE_128)
+      hash_str += "-shake128";
+    else if (flags & cvmfs.CHUNK_HASH_ALG.RIPEMD_160)
+      hash_str += "-rmd160";
     const hash = new cvmfs.util.hash(hash_str);
 
     const decompress = !(flags & cvmfs.COMPRESSION_ALG.NO_COMPRESSION);
 
-    return cvmfs.retriever.fetchChunk(this._data_url, hash, decompress);
+    if (callback !== undefined) {
+      cvmfs.retriever.fetchChunk(this._data_url, hash, decompress, false, function(chunk) {
+        callback(chunk);
+      });
+    } else {
+      return cvmfs.retriever.fetchChunk(this._data_url, hash, decompress);
+    }
   },
   getChunksWithinRangeForPath: function(catalog, path, flags, low, high) {
     const pair = this._md5PairFromPath(path);

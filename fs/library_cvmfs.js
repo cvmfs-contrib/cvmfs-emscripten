@@ -5,60 +5,33 @@ mergeInto(LibraryManager.library, {
     mountroot: '/cvmfs',
     base_url: 'http://hepvm.cern.ch/cvmfs',
     mount: function(mount) {
+
 #if EMTERPRETIFY_ASYNC
 cvmfs.retriever.setAsync(true);
 #endif
 
-      const repo_name = mount.opts.repo_name;
+      const node = EmterpreterAsync.handle(function(resume) {
+        const repo_name = mount.opts.repo_name;
+        const repo = new cvmfs.repo(CVMFS.base_url, repo_name);
 
-      const repo = new cvmfs.repo(this.base_url, repo_name);
-
-      //console.log(repo);
-
-      EmterpreterAsync.handle(function(resume) {
         repo.init(function() {
-          //console.log(repo);
-          resume();
+          const node = CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
+          node.repo = repo;
+
+          node.repo.getCatalog(repo.getManifest().catalog_hash, function(catalog) {
+            node.catalog = catalog;
+            resume(function() { return node });
+          });
         });
       });
 
-      console.log(repo);
-      console.log(repo._manifest);
-
-      
-
-//cvmfs.pew()
-
-      //const repo = new cvmfs.repo(this.base_url, repo_name);
-
-/*
-
-#if EMTERPRETIFY_ASYNC
-#else
-#endif
-      const manifest = repo.getManifest();
-      const whitelist = repo.getWhitelist();
-      const certificate = repo.getCertificate();
-      */
-      //console.log(manifest);
-      //console.log(whitelist);
-      //console.log(certificate);
-      //
-/*
-      responseText=EmterpreterAsync.handle(function(resume) {
-    xhr.onload = function(e) {
-      resume(function () {
-        if (xhr.status !== 200)
-          return null;
-        return xhr.responseText;
-      });
-    };
-    xhr.send();
-  });*/
-
-      const node = CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
-      node.catalog = repo.getCatalog(manifest.catalog_hash);
-      node.repo = repo;
+      console.log(node);
+      console.log(node.catalog);
+      console.log(node.repo);
+      console.log(node.repo._manifest);
+      console.log(node.repo._whitelist);
+      console.log(node.repo._cert);
+      console.log(node.repo.verify())
 
       return node;
     },
@@ -126,11 +99,6 @@ cvmfs.retriever.setAsync(true);
     },
     node_ops: {
       lookup: function(parent, name) {
-
-
-  //console.log(responseText)
-  //return responseText;
-
         const path = CVMFS.getRelativePath(parent, PATH.join(FS.getPath(parent), name));
         const statinfo = parent.repo.getStatInfoForPath(parent.catalog, path);
 
