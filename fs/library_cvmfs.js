@@ -5,28 +5,22 @@ mergeInto(LibraryManager.library, {
     mountroot: '/cvmfs',
     base_url: 'http://hepvm.cern.ch/cvmfs',
     mount: function(mount) {
+      const node =
+        EmterpreterAsync.handle(function(resume) {
+          const repo_name = mount.opts.repo_name;
+          const repo = new cvmfs.repo(CVMFS.base_url, repo_name);
 
-#if EMTERPRETIFY_ASYNC
-cvmfs.retriever.setAsync(true);
-#endif
+          repo.init(function() {
+            const node = CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
+            node.repo = repo;
 
-      const node = EmterpreterAsync.handle(function(resume) {
-        const repo_name = mount.opts.repo_name;
-        const repo = new cvmfs.repo(CVMFS.base_url, repo_name);
-
-        repo.init(function() {
-          const node = CVMFS.createNode(null, '/', {{{ cDefine('S_IFDIR') }}} | 0777);
-          node.repo = repo;
-
-          node.repo.getCatalog(repo.getManifest().catalog_hash, function(catalog) {
-            node.catalog = catalog;
-            resume(function() { return node });
+            node.repo.getCatalog(repo.getManifest().catalog_hash, function(catalog) {
+              node.catalog = catalog;
+              resume(function() { return node });
+            });
           });
         });
-      });
 
-      console.log(node);
-      console.log(node.catalog);
       console.log(node.repo);
       console.log(node.repo._manifest);
       console.log(node.repo._whitelist);
@@ -81,7 +75,6 @@ cvmfs.retriever.setAsync(true);
       if (parent !== null) {
         node.catalog = parent.catalog;
         node.repo = parent.repo;
-        node.cvmfs_bindpoint = parent.cvmfs_bindpoint;
       }
 
       return node;
@@ -90,12 +83,7 @@ cvmfs.retriever.setAsync(true);
       if (path === undefined)
         path = FS.getPath(node);
 
-      if (node.cvmfs_bindpoint !== undefined)
-        path = path.replace(node.cvmfs_bindpoint, '');
-      else
-        path = path.replace(node.mount.mountpoint, '');
-
-      return path;
+      return path.replace(node.mount.mountpoint, '');
     },
     node_ops: {
       lookup: function(parent, name) {
@@ -104,18 +92,6 @@ cvmfs.retriever.setAsync(true);
 
         const node = CVMFS.createNode(parent, name, statinfo.mode);
         node.cvmfs_statinfo = statinfo;
-
-        const flags = node.cvmfs_statinfo.flags;
-        if (flags & cvmfs.ENTRY_TYPE.NEST_TRANS) {
-          const hash = parent.repo.getNestedCatalogHash(parent.catalog, path);
-          node.catalog = parent.repo.getCatalog(hash);
-        } else if (flags & cvmfs.ENTRY_TYPE.BIND_MOUNT) {
-          const hash = parent.repo.getBindMountpointHash(parent.catalog, path);
-          node.catalog = parent.repo.getCatalog(hash);
-
-          node.cvmfs_bindpoint = PATH.join(FS.getPath(parent), name);
-        }
-
         return node;
       },
       readdir: function(node) {

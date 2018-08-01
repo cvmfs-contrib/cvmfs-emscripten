@@ -29,24 +29,19 @@ cvmfs.COMPRESSION_ALG = Object.freeze({
 
 cvmfs.repo.prototype = {
   init: function(callback) {
-    if (cvmfs.retriever.async) {
-      cvmfs.retriever.fetchManifest(this._repo_url, this._repo_name, (manifest) => {
-        this._manifest = manifest;
+    cvmfs.retriever.fetchManifest(this._repo_url, this._repo_name, (manifest) => {
+      this._manifest = manifest;
 
-        cvmfs.retriever.fetchWhitelist(this._repo_url, this._repo_name, (whitelist) => {
-          this._whitelist = whitelist;
+      cvmfs.retriever.fetchWhitelist(this._repo_url, this._repo_name, (whitelist) => {
+        this._whitelist = whitelist;
 
-          cvmfs.retriever.fetchCertificate(this._data_url, this._manifest.cert_hash, (cert) => {
-            this._cert = cert;
+        cvmfs.retriever.fetchCertificate(this._data_url, this._manifest.cert_hash, (cert) => {
+          this._cert = cert;
 
-            callback(this.verify());
-          });
+          callback(this.verify());
         });
       });
-    } else {
-      this._manifest = cvmfs.retriever.fetchManifest(this._repo_url, this._repo_name);
-      this._whitelist = cvmfs.retriever.fetchWhitelist(this._repo_url, this._repo_name);
-    }
+    });
   },
   verify: function() {
     // verify whitelist signature 
@@ -57,7 +52,8 @@ cvmfs.repo.prototype = {
         cvmfs.util.stringToHex(this._whitelist.metadata_hash.download_handle),
         this._whitelist.signature_hex
       );
-      if (whitelist_verified) break;
+      if (whitelist_verified)
+        break;
     }
     if (!whitelist_verified)
       return false;
@@ -80,13 +76,9 @@ cvmfs.repo.prototype = {
     return true;
   },
   getCatalog: function(hash, callback) {
-    if (callback !== undefined) {
-      cvmfs.retriever.fetchCatalog(this._data_url, hash, function (catalog) {
-        callback(catalog);
-      });
-    } else {
-      return cvmfs.retriever.fetchCatalog(this._data_url, hash);
-    }
+    cvmfs.retriever.fetchCatalog(this._data_url, hash, function (catalog) {
+      callback(catalog);
+    });
   },
   getCatalogStats: function(catalog) {
     const result = catalog.exec('SELECT * FROM STATISTICS')[0].values;
@@ -163,16 +155,12 @@ cvmfs.repo.prototype = {
     const hash = new cvmfs.util.hash(hash_str);
 
     const decompress = !(flags & cvmfs.COMPRESSION_ALG.NO_COMPRESSION);
-
-    if (callback !== undefined) {
-      cvmfs.retriever.fetchChunk(this._data_url, hash, decompress, false, function(chunk) {
-        callback(chunk);
-      });
-    } else {
-      return cvmfs.retriever.fetchChunk(this._data_url, hash, decompress);
-    }
-  },
-  getChunksWithinRangeForPath: function(catalog, path, flags, low, high) {
+    cvmfs.retriever.fetchChunk(this._data_url, hash, decompress, false, function(chunk) {
+      console.log('chunk='+chunk)
+      callback(chunk);
+    });
+  },/*
+  getChunksWithinRangeForPath: function(catalog, path, flags, low, high, callback) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT hex(hash), size FROM chunks WHERE'
                   + ' md5path_1 = ' + pair.high
@@ -184,8 +172,10 @@ cvmfs.repo.prototype = {
     const result = catalog.exec(query);
     if (result[0] === undefined) return null;
 
+    const chunks = [];
     const should_decompress = !(flags & cvmfs.COMPRESSION_ALG.NO_COMPRESSION);
-    const chunks = result[0].values.map(e => {
+
+    for (const e of result[0].values) {
       let hash_str = e[0].toLowerCase();
       if (flags & cvmfs.CHUNK_HASH_ALG.SHAKE_128) {
         hash_str += "-shake128";
@@ -194,14 +184,15 @@ cvmfs.repo.prototype = {
       }
       const hash = new cvmfs.util.hash(hash_str);
 
-      const chunk = cvmfs.retriever.fetchChunk(this._data_url, hash, should_decompress, true);
-      const size = e[1];
-
-      return {chunk, size};
-    });
-
-    return chunks;
-  },
+      cvmfs.retriever.fetchChunk(this._data_url, hash, should_decompress, true, function(chunk) {
+        const size = e[1];
+        chunks.push({chunk, size});
+        if (chunks.length == result[0].values.length) {
+          callback(chunks);
+        }
+      });
+    }
+  },*/
   getSymlinkForPath: function(catalog, path) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT symlink FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
@@ -229,22 +220,6 @@ cvmfs.repo.prototype = {
       mode: row[4],
       flags: row[5]
     };
-  },
-  getNestedCatalogHash: function(catalog, path) {
-    const query = 'SELECT sha1 FROM nested_catalogs WHERE path = "' + path + '"';
-
-    const result = catalog.exec(query);
-    if (result[0] === undefined) return null;
-
-    return new cvmfs.util.hash(result[0].values[0][0]);
-  },
-  getBindMountpointHash: function(catalog, path) {
-    const query = 'SELECT sha1 FROM bind_mountpoints WHERE path = "' + path + '"';
-
-    const result = catalog.exec(query);
-    if (result[0] === undefined) return null;
-
-    return new cvmfs.util.hash(result[0].values[0][0]);
   },
   getManifest: function() { return this._manifest; },
   getWhitelist: function() { return this._whitelist; },

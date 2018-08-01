@@ -43,7 +43,7 @@ void check_lstat(const string& path, const struct test_entry& entry) {
       break;
     case LINK:
       mode = 41471;
-      size = entry.size;printf("%s %d\n",path.c_str(), buf.st_mode);
+      size = entry.size;
       break;
   }
 
@@ -66,14 +66,14 @@ int main() {
       { .path = "empty",                                  .typ = REG, .size = 0 },
       { .path = "chunked",                                .typ = REG, .size = 16777216 },
       { .path = "chunked-mini",                           .typ = REG, .size = 256 },
-      { .path = "subdir/regular_subdir",                  .typ = REG,.size = 0, },
+      { .path = "subdir/regular_subdir",                  .typ = REG,.size = 0, },/*
       { .path = "nested/chunked-mini",                    .typ = REG,.size = 256, },
       { .path = "nested/regular_nested",                  .typ = REG,.size = 0, },
-      { .path = "nested/deep-nested/regular_deep_nested", .typ = REG,.size = 15, },
+      { .path = "nested/deep-nested/regular_deep_nested", .typ = REG,.size = 15, },*/
 
-      { .path = "subdir",             .typ = DIR, },
+      { .path = "subdir",             .typ = DIR, },/*
       { .path = "nested",             .typ = DIR, },
-      { .path = "nested/deep-nested", .typ = DIR, },
+      { .path = "nested/deep-nested", .typ = DIR, },*/
 
       { .path = "symlink",       .typ = LINK, .size = 7 },
       { .path = "varlink",       .typ = LINK, .size = 8 },
@@ -81,12 +81,14 @@ int main() {
     };
 
     const string root_testdir = "/cvmfs/emscripten.cvmfs.io/test/";
-    const string snapshot_testdir = "/cvmfs/emscripten.cvmfs.io/.cvmfs/snapshots/generic-2018-07-06T06:17:36Z/test/";
+    //const string snapshot_testdir = "/cvmfs/emscripten.cvmfs.io/.cvmfs/snapshots/generic-2018-07-06T06:17:36Z/test/";
 
     for (auto& entry : test_entries) {
       check_lstat(root_testdir + entry.path, entry);
-      check_lstat(snapshot_testdir + entry.path, entry);
+      //check_lstat(snapshot_testdir + entry.path, entry);
     }
 
-    return 0;
+    EM_ASM(
+        Module.puppetNotifyExit(0);
+    );
 }

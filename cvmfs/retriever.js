@@ -1,16 +1,4 @@
-cvmfs.retriever.syncHttpGet = function(url) {
-  const request = new XMLHttpRequest();
-  request.open('GET', url, false);
-  request.overrideMimeType("text/plain; charset=x-user-defined");
-  request.send(null);
-
-  if (request.status !== 200)
-    return null;
-
-  return request.responseText;
-};
-
-cvmfs.retriever.asyncHttpGet = function(url, callback) {
+cvmfs.retriever.httpGet = function(url, callback) {
   const xhr = new XMLHttpRequest();
   xhr.open('GET', url, true);
   xhr.overrideMimeType("text/plain; charset=x-user-defined");
@@ -24,16 +12,6 @@ cvmfs.retriever.asyncHttpGet = function(url, callback) {
 
   xhr.send();
 };
-
-cvmfs.retriever.setAsync = function(async) {
-  this.async = async;
-  if (async === true)
-    this.httpGet = this.asyncHttpGet;
-  else
-    this.httpGet = this.syncHttpGet;
-};
-
-cvmfs.retriever.setAsync(false);
 
 cvmfs.retriever.download = function(url, callback) {
   return cvmfs.retriever.httpGet(url, callback);
@@ -105,7 +83,8 @@ cvmfs.retriever.parseManifest = function(data, repo_name) {
         manifest.json_hash = new cvmfs.util.hash(tail);
         break;
       case 'N':
-        if (tail !== repo_name) return undefined;
+        if (tail !== repo_name)
+          return null;
         manifest.repository_name = tail;
         break;
       case 'R':
@@ -132,11 +111,12 @@ cvmfs.retriever.parseManifest = function(data, repo_name) {
   if (manifest.catalog_hash === undefined ||
       manifest.root_hash === undefined ||
       manifest.ttl === undefined ||
-      manifest.revision === undefined) return undefined;
+      manifest.revision === undefined) return null;
 
   const metadata = data.substring(0, data.search('--'));
   const computed_metadata_hash = cvmfs.util.digestString(metadata, manifest.metadata_hash.alg);
-  if (manifest.metadata_hash.hex !== computed_metadata_hash) return undefined;
+  if (manifest.metadata_hash.hex !== computed_metadata_hash)
+    return null;
 
   var signature = data.substr(data.search('--') + 3 /*(--\n)*/);
   signature = signature.substr(signature.search('\n') + 1 /*\n*/);
@@ -146,15 +126,10 @@ cvmfs.retriever.parseManifest = function(data, repo_name) {
 };
 
 cvmfs.retriever.fetchManifest = function(repo_url, repo_name, callback) {
-  if (cvmfs.retriever.async) {
-    cvmfs.retriever.downloadManifest(repo_url, (manifest_raw) => {
-      const manifest = cvmfs.retriever.parseManifest(manifest_raw, repo_name);
-      callback(manifest);
-    });
-  } else {
-    const manifest_raw = cvmfs.retriever.downloadManifest(repo_url);
-    return cvmfs.retriever.parseManifest(manifest_raw, repo_name);
-  }
+  cvmfs.retriever.downloadManifest(repo_url, (manifest_raw) => {
+    const manifest = cvmfs.retriever.parseManifest(manifest_raw, repo_name);
+    callback(manifest);
+  });
 };
 
 cvmfs.retriever.parseWhitelist = function(data, repo_name) {
@@ -164,13 +139,15 @@ cvmfs.retriever.parseWhitelist = function(data, repo_name) {
 
   const metadata_hash = new cvmfs.util.hash(metadata_hash_str);
   const computed_metadata_hash = cvmfs.util.digestString(metadata, metadata_hash.alg);
-  if (metadata_hash.hex !== computed_metadata_hash) return undefined;
+  if (metadata_hash.hex !== computed_metadata_hash)
+    return null;
 
   const whitelist = { metadata_hash: metadata_hash };
   const lines = metadata.split('\n');
 
   whitelist.repository_name = lines[2].substr(1);
-  if (whitelist.repository_name !== repo_name) return undefined;
+  if (whitelist.repository_name !== repo_name)
+    return null;
 
   const expiry_line = lines[1];
   whitelist.expiry_date = new Date(
@@ -190,40 +167,28 @@ cvmfs.retriever.parseWhitelist = function(data, repo_name) {
 };
 
 cvmfs.retriever.fetchWhitelist = function(repo_url, repo_name, callback) {
-  if (cvmfs.retriever.async) {
-    cvmfs.retriever.downloadWhitelist(repo_url, (data) => {
-      const whitelist = cvmfs.retriever.parseWhitelist(data, repo_name);
-      callback(whitelist);
-    });
-  } else {
-    const data = cvmfs.retriever.downloadWhitelist(repo_url);
-    return cvmfs.retriever.parseWhitelist(data, repo_name);
-  }
+  cvmfs.retriever.downloadWhitelist(repo_url, (data) => {
+    const whitelist = cvmfs.retriever.parseWhitelist(data, repo_name);
+    callback(whitelist);
+  });
 };
 
 cvmfs.retriever.fetchCertificate = function(data_url, cert_hash, callback) {
-  function process_data(data) {
+  cvmfs.retriever.downloadCertificate(data_url, cert_hash.download_handle, function(data) {
     const data_hex = cvmfs.util.stringToHex(data);
     const data_hash = cvmfs.util.digestHex(data_hex, cert_hash.alg);
-    if (data_hash !== cert_hash.hex) return undefined;
+    if (data_hash !== cert_hash.hex)
+      callback(null);
 
     const data_deflated = pako.inflate(data);
     const decoder = new TextDecoder("utf-8");
     const pem = decoder.decode(data_deflated);
 
-    const certificate = new X509();
-    certificate.readCertPEM(pem);
-    return certificate;
-  }
+    const cert = new X509();
+    cert.readCertPEM(pem);
 
-  if (callback !== undefined) {
-    cvmfs.retriever.downloadCertificate(data_url, cert_hash.download_handle, function(data) {
-      callback(process_data(data));
-    });
-  } else {
-    const data = cvmfs.retriever.downloadCertificate(data_url, cert_hash.download_handle);
-    return process_data(data);
-  }
+    callback(cert);
+  });
 };
 
 cvmfs.retriever.dataIsValid = function(data, hash) {
@@ -232,49 +197,35 @@ cvmfs.retriever.dataIsValid = function(data, hash) {
   return data_hash === hash.hex;
 }
 
-cvmfs.retriever.fetchCatalog = function(data_url, catalog_hash, callback) {
-  function process_data(data) {
-    if (!cvmfs.retriever.dataIsValid(data, catalog_hash))
-    return undefined;
+cvmfs.retriever.fetchCatalog = function(data_url, ctlg_hash, callback) {
+  cvmfs.retriever.downloadCatalog(data_url, ctlg_hash.download_handle, function(data) {
+    if (!cvmfs.retriever.dataIsValid(data, ctlg_hash))
+      callback(null);
 
     const db_data = pako.inflate(data);
-    return new SQL.Database(db_data);
-  }
+    const catalog =  new SQL.Database(db_data);
 
-  if (callback !== undefined) {
-    cvmfs.retriever.downloadCatalog(data_url, catalog_hash.download_handle, function(data) {
-      callback(process_data(data));
-    });
-  } else {
-    const data = cvmfs.retriever.downloadCatalog(data_url, catalog_hash.download_handle);
-    return process_data(data);
-  }
+    callback(catalog);
+  });
 };
 
-cvmfs.retriever.fetchChunk = function(data_url, hash, decompress=true, partial=false, callback) {
+cvmfs.retriever.fetchChunk = function(data_url, hash, decompress, partial, callback) {
   let download_handle = hash.download_handle;
   if (partial)
     download_handle += "P";
 
-  function process_data(data) {
+  cvmfs.retriever.downloadChunk(data_url, download_handle, '', function(data) {
     if (!cvmfs.retriever.dataIsValid(data, hash))
-    return undefined;
+      callback(null);
 
+    //console.log("data="+data)
     if (decompress)
-      return pako.inflate(data);
+      callback(pako.inflate(data));
 
     if (cvmfs.retriever.text_encoder === undefined)
       cvmfs.retriever.text_encoder = new TextEncoder();
-    return cvmfs.retriever.text_encoder.encode(data);
-  }
 
-  if (callback !== undefined) {
-    cvmfs.retriever.downloadChunk(data_url, download_handle, '', function(data) {
-      console.log("data="+data)
-      callback(process_data(data));
-    });
-  } else {
-    const data = cvmfs.retriever.downloadChunk(data_url, download_handle);
-    return process_data(data);
-  }
+    const uncompressed_chunk = cvmfs.retriever.text_encoder.encode(data);
+    callback(uncompressed_chunk);
+  });
 };

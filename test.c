@@ -6,12 +6,18 @@
 
 int main(){
 	assert(open("/cvmfs/emscripten.cvmfs.io/test/",O_RDONLY) != -1);
-	int fd=open("/cvmfs/emscripten.cvmfs.io/test/regular",O_RDONLY);
+	open("/cvmfs/emscripten.cvmfs.io/test/regular",O_RDONLY);
+
+	int fd=open("/cvmfs/emscripten.cvmfs.io/test/chunked-mini",O_RDONLY);
 	assert(fd != -1);
+
 	assert(open("/cvmfs/emscripten.cvmfs.io/test/not",O_RDONLY) == -1);
 
-	char buf[100];
-	read(fd, buf, 100);
-	printf("content = %s",buf);
+	char buf[256];
+	int re = read(fd, buf, 256);
+	printf("re = %d\n",re);
+	//for(int i=0;i<256;i++)
+	printf("b = %s\n",buf);
+	//printf("re = %d\n",re);
 	return 0;
 }

@@ -25,15 +25,20 @@ const cvmfs_methods = {
     const node = stream.node;
     const flags = node.cvmfs_statinfo.flags;
     const path = CVMFS.getRelativePath(node);
-    let bytes_read = 0;
-
+/*
     if (flags & cvmfs.ENTRY_TYPE.CHUNKD) {
       const lb = position;
       const ub = position + length - 1;
-      const chunks = node.repo.getChunksWithinRangeForPath(node.catalog, path, flags, lb, ub);
-
+      const chunks = EmterpreterAsync.handle(function(resume) {
+        node.repo.getChunksWithinRangeForPath(node.catalog, path, flags, lb, ub, function(chunks) {
+          resume(function() { return chunks; });
+        });
+      });
+      if (chunks === undefined || chunks === null)
+        return 0;
+      
       let total_chunk_len = 0;
-      chunks.forEach(e => {
+      for (var e of chunks) {
         const chunk = e.chunk;
 
         total_chunk_len += chunk.length;
@@ -45,23 +50,23 @@ const cvmfs_methods = {
         offset += size;
 
         bytes_read += size;
-      });
+      };
     } else {
-      const content = EmterpreterAsync.handle(function(resume) {
-        node.repo.getContentForRegularFile(node.catalog, path, flags, function(content) {
-          resume(function() { return content; });
-        });
+*/
+    const content = EmterpreterAsync.handle(function(resume) {
+      node.repo.getContentForRegularFile(node.catalog, path, flags, function(content) {
+        resume(function() { return content });
       });
+    });
+    console.log("content="+content)
 
-      if (content === undefined || content === null || position >= content.length)
-        return 0;
-      console.log(content)
-      const size = Math.min(content.length - position, length);
-      buffer.set(content.subarray(position, position + size), offset);
-      bytes_read = size;
-    }
+    if (!content || position >= content.length)
+      return 0;
 
-    return bytes_read;
+    const size = Math.min(content.length - position, length);
+    buffer.set(content.subarray(position, position + size), offset);
+console.log("size="+size)
+    return size;
   },
   llseek: function(stream, offset, whence) {
     var position = offset;

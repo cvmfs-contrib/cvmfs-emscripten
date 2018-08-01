@@ -11,6 +11,8 @@ int main() {
     assert(open("/cvmfs", O_RDONLY) == -1);
 
     assert(open("/cvmfs/emscripten.cvmfs.io", O_RDONLY) != -1);
-
-    return 0;
+ 	
+ 	EM_ASM(
+        Module.puppetNotifyExit(0);
+    );
 }

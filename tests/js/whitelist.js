@@ -5,10 +5,10 @@ tests.runTest(function parseWhitelist() {
   const repo_name = 'emscripten.cvmfs.io';
 
   // different metadata hash
-  chai.assert.isUndefined(cvmfs.retriever.parseWhitelist(data.replace(/--\n.*\n/, '--\n'), repo_name));
+  chai.assert.isNull(cvmfs.retriever.parseWhitelist(data.replace(/--\n.*\n/, '--\n'), repo_name));
 
   // different repo name
-  chai.assert.isUndefined(cvmfs.retriever.parseWhitelist(data, 'something.something.something.darkside'));
+  chai.assert.isNull(cvmfs.retriever.parseWhitelist(data, 'something.something.something.darkside'));
 
   const whitelist = cvmfs.retriever.parseWhitelist(data, repo_name);
   chai.assert.strictEqual(whitelist.repository_name, repo_name);

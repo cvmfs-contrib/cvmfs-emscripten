@@ -5,10 +5,10 @@ tests.runTest(function test_parseManifest() {
   const repo_name = 'emscripten.cvmfs.io';
 
   // different metadata hash
-  chai.assert.isUndefined(cvmfs.retriever.parseManifest(data.replace(/--\n.*\n/, '--\n'), repo_name));
+  chai.assert.isNull(cvmfs.retriever.parseManifest(data.replace(/--\n.*\n/, '--\n'), repo_name));
 
   // different repo name
-  chai.assert.isUndefined(cvmfs.retriever.parseManifest(data, 'something.something.something.darkside'));
+  chai.assert.isNull(cvmfs.retriever.parseManifest(data, 'something.something.something.darkside'));
 
   const manifest = cvmfs.retriever.parseManifest(data, repo_name);
   chai.assert.strictEqual(manifest.has_alt_catalog_path, false);

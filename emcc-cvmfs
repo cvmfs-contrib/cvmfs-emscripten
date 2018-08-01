@@ -33,6 +33,8 @@ FS_DIR=$SRC_DIR/fs
 $SRC_DIR/generate-pre.sh
 
 $EMC $* \
+    -s EMTERPRETIFY=1 \
+    -s EMTERPRETIFY_ASYNC=1 \
     --js-library $FS_DIR/library_cvmfs.js \
     --js-library $FS_DIR/library_fs.js \
     --pre-js $SRC_DIR/pre.js

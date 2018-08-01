@@ -18,7 +18,13 @@ void check_symlink(const string& path, const string& symlink_val) {
   assert(strcmp(buf, symlink_val.c_str()) == 0);
 }
 
-void check_symlinks(const string root) {
+int main() {
+    EM_ASM(
+        window._cvmfs_testname = 'readlink';
+    );
+
+    const string root = "/cvmfs/emscripten.cvmfs.io/";
+
     const string symlink_path = root + "test/symlink";
     const string symlink_val = root + "test/regular";
     check_symlink(symlink_path, symlink_val);
@@ -53,15 +59,8 @@ void check_symlinks(const string root) {
         CVMFS.setSymlinkVar('INFIX', "");
         CVMFS.setSymlinkVar('POSTFIX', "");
     );
-}
 
-int main() {
     EM_ASM(
-        window._cvmfs_testname = 'readlink';
+        Module.puppetNotifyExit(0);
     );
-
-    check_symlinks("/cvmfs/emscripten.cvmfs.io/");
-    check_symlinks("/cvmfs/emscripten.cvmfs.io/.cvmfs/snapshots/generic-2018-07-06T06:17:36Z/");
-
-    return 0;
 }

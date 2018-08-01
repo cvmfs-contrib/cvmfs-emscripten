@@ -58,7 +58,7 @@ int main() {
       {
         .path = "test/subdir",
         .entries = { "regular_subdir" }
-      },
+      },/*
       {
         .path = "test/nested",
         .entries = { "regular_nested", "chunked-mini", "deep-nested" }
@@ -70,18 +70,20 @@ int main() {
       {
         .path = ".cvmfs",
         .entries = { "snapshots" }
-      },
+      },*/
     };
 
     const string rootdir = "/cvmfs/emscripten.cvmfs.io/";
-    const string snapshot = "/cvmfs/emscripten.cvmfs.io/.cvmfs/snapshots/generic-2018-07-06T06:17:36Z/";
+    //const string snapshot = "/cvmfs/emscripten.cvmfs.io/.cvmfs/snapshots/generic-2018-07-06T06:17:36Z/";
 
     for (auto& testdir : testdirs) {
       const bool is_root = testdir.path == "";
 
       check_entries(rootdir + testdir.path, testdir.entries, is_root);
-      check_entries(snapshot + testdir.path, testdir.entries, is_root);
+      //check_entries(snapshot + testdir.path, testdir.entries, is_root);
     }
 
-    return 0;
+    EM_ASM(
+        Module.puppetNotifyExit(0);
+    );
 }

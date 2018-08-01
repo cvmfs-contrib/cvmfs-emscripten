@@ -8,8 +8,9 @@ const tests = {
     FS.close(stream);
   
     const chars = [];
-    for (const byte of data)
+    data.forEach(function(byte) {
       chars.push(String.fromCharCode(byte));
+    });
     return chars.join('');
   },
   runTest: function(test_func) {
