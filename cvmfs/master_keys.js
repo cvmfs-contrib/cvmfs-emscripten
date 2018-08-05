@@ -20,6 +20,12 @@ cvmfs.getMasterKeys = function() {
   return cvmfs._master_keys;
 }
 
+cvmfs.addMasterKey = function(pkcs_key) {
+  const master_keys = cvmfs.getMasterKeys();
+  master_keys.push(KEYUTIL.getKey(pkcs_key));
+  cvmfs._master_keys = master_keys;
+};
+
 RSAKey.prototype.verifyRawWithMessageHex = function(sMsgHex, hSig) {
   hSig = hSig.replace(_RE_HEXDECONLY, '');
   hSig = hSig.replace(/[ \n]+/g, "");
