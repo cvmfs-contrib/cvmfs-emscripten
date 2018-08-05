@@ -43,7 +43,7 @@ void check_lstat(const string& path, const struct test_entry& entry) {
       break;
     case LINK:
       mode = 41471;
-      size = entry.size;printf("%s %d\n",path.c_str(), buf.st_mode);
+      size = entry.size;
       break;
   }
 
