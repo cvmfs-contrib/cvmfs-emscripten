@@ -2,40 +2,56 @@
 
 set -e
 
+SRC_DIR="$( cd "$( dirname "$0" )" && pwd )"
+FS_DIR=$SRC_DIR/fs
+MISC_DIR=$SRC_DIR/misc
+
 EMC=emcc
 if [ $1 == "em++" ]; then
   EMC=em++
   shift
 fi
 
+OUTPUT_DIR=""
 OUTPUT_JS="a.out.js"
+
+SWCACHE=0
+SWCACHE_OPTS=""
 
 i=1
 while [ "$i" -le "$#" ]; do
   eval "arg=\${$i}"
+
   if [[ $arg == "-o" ]]; then
     i=$((i + 1))
     eval "OUTPATH=\${$i}"
+    OUTPUT_DIR=$(dirname $OUTPATH)
     OUTFILE=$(basename $OUTPATH)
     if [[ $OUTFILE == *.html || $OUTFILE == *.js ]]; then
-      OUTPUT_JS=$(dirname $OUTPATH)/${OUTFILE%*.*}.js
+      OUTPUT_JS=$OUTPUT_DIR/${OUTFILE%*.*}.js
     else
       echo "Please specify either an HTML or JavaScript output." && exit -1
     fi
-    break
+  elif [[ $arg == "-swcache" ]]; then
+    SWCACHE=1
+    SWCACHE_OPTS="--pre-js $MISC_DIR/sw-pre.js"
+    set -- "${@:1:i-1}" "${@:i+1}" # clear ith argument
   fi
+
   i=$((i + 1))
 done
-
-SRC_DIR="$( cd "$( dirname "$0" )" && pwd )"
-FS_DIR=$SRC_DIR/fs
 
 $SRC_DIR/generate-pre.sh
 
 $EMC $* \
     --js-library $FS_DIR/library_cvmfs.js \
     --js-library $FS_DIR/library_fs.js \
-    --pre-js $SRC_DIR/pre.js
+    --pre-js $SRC_DIR/pre.js \
+    $SWCACHE_OPTS
+
+if [ $SWCACHE -eq 1 ]; then
+  cp $MISC_DIR/sw-cache.js $OUTPUT_DIR
+fi
 
 OUTPUT_JS_TMP=$OUTPUT_JS.tmp
 cat $SRC_DIR/third_party/sql.js > $OUTPUT_JS_TMP

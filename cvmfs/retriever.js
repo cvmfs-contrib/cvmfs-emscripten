@@ -1,19 +1,21 @@
+cvmfs.retriever.httpGet = function(url) {
+  const request = new XMLHttpRequest();
+  request.open('GET', url, false);
+  request.overrideMimeType("text/plain; charset=x-user-defined");
+  request.send(null);
+
+  if (request.status !== 200)
+    return null;
+
+  return request.responseText;
+}
+
 cvmfs.retriever.download = function(url) {
-  var responseText = cvmfs.cache.get(url);
-
+  let responseText = cvmfs.cache.get(url);
   if (responseText === null) {
-    const request = new XMLHttpRequest();
-    request.open('GET', url, false);
-    request.overrideMimeType("text/plain; charset=x-user-defined");
-    request.send(null);
-
-    if (request.status !== 200)
-      return null;
-
-    responseText = request.responseText;
+    responseText = cvmfs.retriever.httpGet(url);
     cvmfs.cache.set(url, responseText);
   }
-
   return responseText;
 };
 
