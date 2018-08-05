@@ -14,21 +14,25 @@ cvmfs.repo = function(base_url, repo_name) {
       cvmfs.util.stringToHex(this._whitelist.metadata_hash.download_handle),
       this._whitelist.signature_hex
     );
-    if (whitelist_verified) break;
+    if (whitelist_verified)
+      break;
   }
-  if (!whitelist_verified) return undefined;
+  if (!whitelist_verified)
+    throw new Error('Unable to verify whitelist');
 
   /* verify certificate fingerprint */
   const now = new Date();
   if (now >= this._whitelist.expiry_date) return undefined;
   const fingerprint = cvmfs.util.digestHex(this._cert.hex, this._whitelist.cert_fp.alg);
-  if (fingerprint !== this._whitelist.cert_fp.hex) return undefined;
+  if (fingerprint !== this._whitelist.cert_fp.hex)
+    throw new Error('Unable to verify certificate');
 
   /* verify manifest signature */
   const signature = new KJUR.crypto.Signature({alg: 'SHA1withRSA'});
   signature.init(this._cert.getPublicKey());
   signature.updateString(this._manifest.metadata_hash.download_handle);
-  if (!signature.verify(this._manifest.signature_hex)) return undefined;
+  if (!signature.verify(this._manifest.signature_hex))
+    throw new Error('Unable to verify manifest');
 };
 
 // Bit flags
