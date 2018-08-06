@@ -21,7 +21,8 @@
           if (arguments.length > 1) {
             text = Array.prototype.slice.call(arguments).join(' ');
           }
-          window._cvmfs_printErr(text)
+          console.log(text);
+          window._cvmfs_printErr(text);
         },
         onExit: puppet_notify_exit // when 'main' returns
       };
