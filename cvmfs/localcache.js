@@ -1,31 +1,79 @@
-cvmfs.cache.localstorage_chunk_limit = 1024 * 1024;
+cvmfs.cache.lru = {
+    nodes: {},
+    front: null,
+    back: null,
+    popBack: function() {
+        if (this.back === null)
+            return;
 
-cvmfs.cache.set = function(key_str, val_str) {
-	if (val_str.length > this.localstorage_chunk_limit)
-		return;
+        const key_to_pop = this.back.key;
+        this.nodes[key_to_pop] = undefined;
+        this.back = this.back.next;
+        if (this.back !== null)
+            this.back.prev = null;
+        return key_to_pop;
+    },
+    pushFront: function(key) {
+        let node = this.nodes[key];
 
+        if (node === this.front)
+            return;
+
+        if (node !== undefined) {
+            if (node.next !== null)
+                node.next.prev = node.prev;
+            if (node.prev !== null)
+                node.prev.next = node.next;
+        } else {
+            node = { key: key };
+            this.nodes[key] = node;
+        }
+
+        node.next = null;
+        node.prev = this.front;
+        this.front = node;
+        if (this.back === null)
+            this.back = node;
+    },
+    isEmpty: function() {
+        return this.front === null;
+    }
+};
+
+cvmfs.cache.set = function(key, val_str) {
 	if (this.text_encoder === undefined)
 		this.text_encoder = new TextEncoder();
+
 	const buffer = this.text_encoder.encode(val_str);
 
 	const base64 = this.bufferToString(buffer);
 
-	try {
-		localStorage.setItem(key_str, base64);
-	} catch (e) {
-		console.log(e);
-	}
+    let cached = false;
+    while (!cached) {
+        try {
+            localStorage.setItem(key, base64);
+            this.lru.pushFront(key);
+            cached = true;
+        } catch (e) {
+            if (this.lru.isEmpty())
+                cached = true;
+            else
+                localStorage.removeItem(this.lru.popBack());
+        }
+    }
 };
 
-cvmfs.cache.get = function(key_str) {
-	const base64 = localStorage.getItem(key_str);
+cvmfs.cache.get = function(key) {
+	const base64 = localStorage.getItem(key);
 	if (base64 === null)
 		return null;
 
-	const buffer = this.stringToBuffer(base64);
+    cvmfs.cache.lru.pushFront(key);
 
 	if (this.text_decoder === undefined)
 		this.text_decoder = new TextDecoder();
+
+    const buffer = this.stringToBuffer(base64);
     return this.text_decoder.decode(buffer);
 };
 
