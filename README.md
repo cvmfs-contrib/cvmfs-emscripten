@@ -7,7 +7,7 @@ and run them on any device with a modern web browser.
 
 First, run `npm install` to install some required Node.js packages.
 
-Then, use the `emcc-cvmfs` script to compile C programs, or `em++-cvmfs` for C++ programs. These scripts are essentially wrappers around `emcc` and `em++`, which include a few required arguments. Any arguments you pass to the wrappers will be passed on to Emscripten.
+Then, use the `emcc-cvmfs` script to compile C programs, or `em++-cvmfs` for C++ programs. These scripts are essentially wrappers around `emcc` and `em++`, which pass along a few required arguments to Emscripten. Any arguments you pass to the wrappers will also be passed on to Emscripten.
 
 ## Info
 
