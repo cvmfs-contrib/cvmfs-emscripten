@@ -4,7 +4,7 @@ set -e
 
 SRC_DIR="$( cd "$( dirname "$0" )" && pwd )"
 FS_DIR=$SRC_DIR/fs
-MISC_DIR=$SRC_DIR/misc
+SWCACHE_DIR=$SRC_DIR/sw-cache
 
 EMC=emcc
 if [ $1 == "em++" ]; then
@@ -34,7 +34,7 @@ while [ "$i" -le "$#" ]; do
     fi
   elif [[ $arg == "-swcache" ]]; then
     SWCACHE=1
-    SWCACHE_OPTS="--pre-js $MISC_DIR/sw-pre.js"
+    SWCACHE_OPTS="--pre-js $SWCACHE_DIR/sw-pre.js"
     set -- "${@:1:i-1}" "${@:i+1}" # clear ith argument
   fi
 
@@ -50,7 +50,7 @@ $EMC $* \
     $SWCACHE_OPTS
 
 if [ $SWCACHE -eq 1 ]; then
-  cp $MISC_DIR/sw-cache.js $OUTPUT_DIR
+  cp $SWCACHE_DIR/sw-cache.js $OUTPUT_DIR
 fi
 
 OUTPUT_JS_TMP=$OUTPUT_JS.tmp
