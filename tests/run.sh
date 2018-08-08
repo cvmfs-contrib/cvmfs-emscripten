@@ -29,7 +29,7 @@ if [ $COMPILE -eq 1 ]; then
     mkdir -p $JS_BUILD_DIR
     mkdir -p $CPP_BUILD_DIR
 
-    $SRC_DIR/generate-pre.sh
+    $SRC_DIR/generate-cvmfs.sh
 
     echo -n "Compiling JavaScript tests... "
     for testfile in $JS_DIR/*.js; do

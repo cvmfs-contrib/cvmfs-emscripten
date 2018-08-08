@@ -8,13 +8,13 @@ CVMFS_DIR=$SRC_DIR/cvmfs
 THIRD_PARTY_DIR=$SRC_DIR/third_party
 CVMFS_METHODS=$SRC_DIR/fs/cvmfs_methods.js
 
-PRE_JS=$SRC_DIR/pre.js
+CVMFS_JS=$SRC_DIR/cvmfs.js
 
 FILES_CHANGED=0
 pre_files=($CVMFS_DIR/*.js $THIRD_PARTY_DIR/*.js $CVMFS_METHODS)
 
 for file in ${pre_files[*]}; do
-  if [[ $file != *sql.js && $file -nt $PRE_JS ]]; then
+  if [[ $file != *sql.js && $file -nt $CVMFS_JS ]]; then
     FILES_CHANGED=1
     break
   fi
@@ -22,19 +22,19 @@ done
 
 [[ FILES_CHANGED -eq 0 ]] && exit 0
 
-echo "Generating pre.js"
+echo "Generating cvmfs.js"
 
-> $PRE_JS
+> $CVMFS_JS
 
 for file in ${pre_files[*]}; do
   if [[ $file != *sql.js && $file != *sha3.js ]]; then
-    cat $file >> $PRE_JS
+    cat $file >> $CVMFS_JS
   fi
 done
 
-npx babel $PRE_JS -o $PRE_JS.babel
-mv $PRE_JS.babel $PRE_JS
+npx babel $CVMFS_JS -o $CVMFS_JS.babel
+mv $CVMFS_JS.babel $CVMFS_JS
 
 # somehow, babel messes up transpiling sha3.js correctly, but sha3.js
 # also dosn't crash Emscripten's optimizer, so we can just prepend it
-cat $THIRD_PARTY_DIR/sha3.js >> $PRE_JS
+cat $THIRD_PARTY_DIR/sha3.js >> $CVMFS_JS

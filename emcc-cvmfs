@@ -41,12 +41,12 @@ while [ "$i" -le "$#" ]; do
   i=$((i + 1))
 done
 
-$SRC_DIR/generate-pre.sh
+$SRC_DIR/generate-cvmfs.sh
 
 $EMC $* \
     --js-library $FS_DIR/library_cvmfs.js \
     --js-library $FS_DIR/library_fs.js \
-    --pre-js $SRC_DIR/pre.js \
+    --pre-js $SRC_DIR/cvmfs.js \
     $SWCACHE_OPTS
 
 if [ $SWCACHE -eq 1 ]; then
