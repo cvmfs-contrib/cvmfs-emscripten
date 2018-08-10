@@ -79,6 +79,9 @@ cvmfs.cache.get = function(key) {
 
 cvmfs.cache.clearAll = function() {
     localStorage.clear();
+    this.nodes = {};
+    this.front = null;
+    this.back = null;
 };
 
 /// ----
