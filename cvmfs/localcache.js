@@ -77,6 +77,10 @@ cvmfs.cache.get = function(key) {
     return this.text_decoder.decode(buffer);
 };
 
+cvmfs.cache.clearAll = function() {
+    localStorage.clear();
+};
+
 /// ----
 /// taken from https://github.com/localForage/localForage
 /// License: https://github.com/localForage/localForage/blob/master/LICENSE

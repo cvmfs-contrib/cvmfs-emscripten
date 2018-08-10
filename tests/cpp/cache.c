@@ -33,8 +33,6 @@ int main() {
 
     EM_ASM(
       window._cvmfs_clearHashesLog();
-
-      FS.unmount('/cvmfs/emscripten.cvmfs.io');
     );
 
     check_regular();

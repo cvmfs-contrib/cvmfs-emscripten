@@ -19,6 +19,8 @@ mergeInto(LibraryManager.library, {
       node.catalog = repo.getCatalog(manifest.catalog_hash);
       node.repo = repo;
 
+      cvmfs.cache.clearAll();
+
       return node;
     },
     createNode: function(parent, name, mode) {
