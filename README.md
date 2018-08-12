@@ -52,6 +52,23 @@ The only master public key included is for a test repository (`emscripten.cvmfs.
 
 By default, the Local Storage API is used to cache file data and metadata, with LRU eviction when the cache is full. But since this API limits the cache size to less than 10MB on most browsers, there is an experimental caching method implemented that uses Service Workers and the new Cache API instead. Simply passing `-swcache` to `emcc-cvmfs` will enable this by placing a `sw-cache.js` Service Worker script alongside the other output files. This would allow the filesystem to cache much larger data, however, it has only been tested to work on newer (>= 57) versions of Mozilla Firefox.
 
+## Supported features
+
+The following is implemented status of features of CernVM-FS
+
+- [x] Auto-mounting when repository under `/cvmfs` is accessed
+- [x] Verifying signature on manifest and whitelist, and fingerprint on certificate
+- [x] Reading regular files, compressed and uncompressed
+- [x] Hash verification using SHA1, RIPEMD-160, and SHAKE-128
+- [x] Reading chunked files
+- [x] Reading symbolic links with dynamic variable substitution
+- [x] Reading nested catalogs
+- [x] Reading bind mountpoints
+- [x] Reading catalog statistics and properties
+- [x] Reading entry metadata by calling `stat`
+- [ ] Reading extended attributes with `getxattr`
+- [ ] Reading external files
+
 ## cvmfs.js
 
 Running `generate-cvmfs.sh` will create a `cvmfs.js` file in the source directory, which contains the entier cvmfs client code (and code from all dependencies). As mentioned above, it can currently only be run on the browser.
