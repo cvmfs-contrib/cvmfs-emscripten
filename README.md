@@ -18,7 +18,7 @@ The goal of this project is to enable C/C++ programs compiled to Web Assembly or
   read(fd, buf, len);
 ```
 
-will work seamlessly by downloading the appropriate metadata and data, and also caching it on the brower's local storage for later use.
+will work seamlessly by downloading the appropriate metadata and data, and also caching it on the browser's local storage for later use.
 
 A potential application of this would be running event generator programs like Pythia and Geant4 on the browser efficiently, that is, without packaging all the required data files necessary for the computation with the HTML & JS files. Instead, as the program accesses certain files, they are fetched automatically on-demand and cached locally.
 
