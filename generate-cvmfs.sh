@@ -4,14 +4,16 @@ set -e
 
 SRC_DIR="$( cd "$( dirname "$0" )" && pwd )"
 
+LOCAL_JS=$SRC_DIR/local.js
 CVMFS_DIR=$SRC_DIR/cvmfs
 THIRD_PARTY_DIR=$SRC_DIR/third_party
 CVMFS_METHODS=$SRC_DIR/fs/cvmfs_methods.js
+RUN_JS=$SRC_DIR/run.js
 
 CVMFS_JS=$SRC_DIR/cvmfs.js
 
 FILES_CHANGED=0
-pre_files=($CVMFS_DIR/*.js $THIRD_PARTY_DIR/*.js $CVMFS_METHODS)
+pre_files=($CVMFS_DIR/*.js $THIRD_PARTY_DIR/*.js $CVMFS_METHODS $RUN_JS)
 
 for file in ${pre_files[*]}; do
   if [[ $file != *sql.js && $file -nt $CVMFS_JS ]]; then
