@@ -13,7 +13,7 @@ RUN_JS=$SRC_DIR/run.js
 CVMFS_JS=$SRC_DIR/cvmfs.js
 
 FILES_CHANGED=0
-pre_files=($CVMFS_DIR/*.js $THIRD_PARTY_DIR/*.js $CVMFS_METHODS $RUN_JS)
+pre_files=($LOCAL_JS $CVMFS_DIR/*.js $THIRD_PARTY_DIR/*.js $CVMFS_METHODS $RUN_JS)
 
 for file in ${pre_files[*]}; do
   if [[ $file != *sql.js && $file -nt $CVMFS_JS ]]; then
