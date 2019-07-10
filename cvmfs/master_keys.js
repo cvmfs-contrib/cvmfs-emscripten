@@ -11,6 +11,9 @@ ZQIDAQAB\
 -----END PUBLIC KEY-----'
 ];
 
+var rs = require('jsrsasign');
+var rsu = require('jsrsasign-util');
+
 cvmfs.getMasterKeys = function() {
   if (cvmfs._master_keys === null) {
     cvmfs._master_keys = cvmfs._pkcs8_keys.map(function (pkcs_key) {
