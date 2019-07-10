@@ -1,7 +1,8 @@
 cvmfs.retriever.httpGet = function(url) {
+  var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
   const request = new XMLHttpRequest();
   request.open('GET', url, false);
-  request.overrideMimeType("text/plain; charset=x-user-defined");
+  // request.overrideMimeType("text/plain; charset=x-user-defined");
   request.send(null);
 
   if (request.status !== 200)
