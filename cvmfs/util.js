@@ -44,7 +44,7 @@ cvmfs.util.digestString = function(str, alg) {
     shake128.update(str);
     return shake128.getHash("HEX", {shakeLen: 160});
   } else {
-    return KJUR.crypto.Util.hashString(str, alg);
+    return rs.KJUR.crypto.Util.hashString(str, alg);
   }
 }
 
@@ -55,6 +55,6 @@ cvmfs.util.digestHex = function(hex, alg) {
     shake128.update(hex);
     return shake128.getHash("HEX", {shakeLen: 160});
   } else {
-    return KJUR.crypto.Util.hashHex(hex, alg);
+    return rs.KJUR.crypto.Util.hashHex(hex, alg);
   }
 }
