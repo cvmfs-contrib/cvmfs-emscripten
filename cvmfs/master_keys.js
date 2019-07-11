@@ -17,7 +17,7 @@ var rsu = require('jsrsasign-util');
 cvmfs.getMasterKeys = function() {
   if (cvmfs._master_keys === null) {
     cvmfs._master_keys = cvmfs._pkcs8_keys.map(function (pkcs_key) {
-      return KEYUTIL.getKey(pkcs_key);
+      return rs.KEYUTIL.getKey(pkcs_key);
     });
   }
   return cvmfs._master_keys;
@@ -29,3 +29,12 @@ cvmfs.addMasterKey = function(pkcs_key) {
   cvmfs._master_keys = master_keys;
 };
 
+rs.RSAKey.prototype.verifyRawWithMessageHex = function(sMsgHex, hSig) {
+  hSig = hSig.replace(rs._RE_HEXDECONLY, '');
+  hSig = hSig.replace(/[ \n]+/g, "");
+  var biSig = parseBigInt(hSig, 16);
+  if (biSig.bitLength() > this.n.bitLength()) return 0;
+  var biDecryptedSig = this.doPublic(biSig);
+  var hMsgHex = biDecryptedSig.toString(16).replace(/^1f+00/, '');
+  return (hMsgHex === sMsgHex);
+};
