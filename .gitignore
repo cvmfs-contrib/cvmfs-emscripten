@@ -4,3 +4,4 @@ pre.js
 tests/build/
 cvmfs.js
 scratch/
+.vscode
