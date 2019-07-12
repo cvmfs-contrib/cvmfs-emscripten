@@ -32,7 +32,7 @@ cvmfs.addMasterKey = function(pkcs_key) {
 rs.RSAKey.prototype.verifyRawWithMessageHex = function(sMsgHex, hSig) {
   hSig = hSig.replace(rs._RE_HEXDECONLY, '');
   hSig = hSig.replace(/[ \n]+/g, "");
-  var biSig = parseBigInt(hSig, 16);
+  var biSig = new rs.BigInteger(hSig, 16);
   if (biSig.bitLength() > this.n.bitLength()) return 0;
   var biDecryptedSig = this.doPublic(biSig);
   var hMsgHex = biDecryptedSig.toString(16).replace(/^1f+00/, '');
