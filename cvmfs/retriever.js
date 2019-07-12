@@ -162,7 +162,11 @@ cvmfs.retriever.fetchCertificate = function(data_url, cert_hash) {
 
   const data_hex = cvmfs.util.stringToHex(data);
   const data_hash = cvmfs.util.digestHex(data_hex, cert_hash.alg);
-  if (data_hash !== cert_hash.hex) return undefined;
+
+  if (data_hash !== cert_hash.hex) {
+    console.log("The hash sums aren't equal")
+    return undefined;
+  }
 
   const data_deflated = pako.inflate(data);
   const decoder = new TextDecoder("utf-8");
