@@ -1,8 +1,13 @@
 {
+  "scripts": {
+    "server": "babel-node ./cvmfs/cvmfs.js"
+  },
   "devDependencies": {
+    "@babel/cli": "^7.5.5",
+    "@babel/core": "^7.5.5",
+    "@babel/node": "^7.5.5",
     "@babel/plugin-transform-strict-mode": "^7.2.0",
-    "babel-cli": "^6.26.0",
-    "babel-preset-env": "^1.7.0",
+    "@babel/preset-env": "^7.5.5",
     "puppeteer": "^1.4.0"
   },
   "dependencies": {
@@ -12,5 +17,6 @@
     "node-rsa": "^1.0.5",
     "pako": "^1.0.10",
     "xmlhttprequest": "^1.8.0"
-  }
+  },
+  "type": "module"
 }
