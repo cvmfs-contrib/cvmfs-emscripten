@@ -3,5 +3,5 @@ package-lock.json
 pre.js
 tests/build/
 cvmfs.js
-scratch/
+cache/
 .vscode
