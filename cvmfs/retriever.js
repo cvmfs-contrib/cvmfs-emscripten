@@ -1,210 +1,355 @@
-cvmfs.retriever.httpGet = function(url) {
-  var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-  const request = new XMLHttpRequest();
-  request.open('GET', url, false);
-  // request.overrideMimeType("text/plain; charset=x-user-defined");
-  request.send(null);
+'use strict';
 
-  if (request.status !== 200)
-    return null;
+import { get } from 'http';
+import { Readable } from 'stream';
+import { inflateRaw } from 'zlib';
+import { spawn } from 'child_process'
+import { inflate } from 'pako';
+import { X509 } from 'jsrsasign';
+import { Hash, digestString, digestHex, stringToHex } from './util';
+import { Cache } from './localcache';
 
-  return request.responseText;
+export class Manifest {
+  constructor() {
+    this.catalogHash = undefined;
+    this.rootHash = undefined;
+    this.ttl = undefined;
+    this.revision = undefined;
+    this.hasAltCatalogPath = undefined;
+    this.catalogSize = undefined;
+    this.garbageCollectable = undefined;
+    this.historyHash = undefined;
+    this.jsonHash = undefined;
+    this.repositoryName = undefined;
+    this.publishedTimestamp = undefined;
+    this.certHash = undefined;
+    this.metadataHash = undefined;
+    this.signatureHex = undefined;
+  }
 }
 
-cvmfs.retriever.download = function(url) {
-  let responseText = cvmfs.cache.get(url);
-  if (responseText === null) {
-    responseText = cvmfs.retriever.httpGet(url);
-    cvmfs.cache.set(url, responseText);
+export class Whitelist {
+  constructor() {
+    this.metadataHash = undefined;
+    this.repositoryName = undefined;
+    this.expiryDate = undefined;
+    this.certFp = undefined;
+    this.signatureHex = undefined;
   }
-  return responseText;
-};
-
-cvmfs.retriever.downloadManifest = function(repo_url) {
-  const url = repo_url + '/.cvmfspublished';
-  return cvmfs.retriever.download(url);
-};
-
-cvmfs.retriever.downloadWhitelist = function(repo_url) {
-  const url = repo_url + '/.cvmfswhitelist';
-  return cvmfs.retriever.download(url);
-};
-
-cvmfs.retriever.downloadChunk = function(data_url, hash, suffix='') {
-  const url = [data_url, '/', hash.substr(0, 2), '/', hash.substr(2), suffix].join('');
-  return this.download(url);
-};
-
-cvmfs.retriever.downloadCertificate = function(data_url, hash) {
-  return this.downloadChunk(data_url, hash, 'X');
-};
-
-cvmfs.retriever.downloadCatalog = function(data_url, hash) {
-  return this.downloadChunk(data_url, hash, 'C');
-};
-
-cvmfs.retriever.parseManifest = function(data, repo_name) {
-  const manifest = {};
-
-  const lines = data.split('\n');
-  for (const i in lines) {
-    const line = lines[i];
-    const head = line.charAt(0);
-    const tail = line.substring(1);
-
-    switch (head) {
-      case 'A':
-        manifest.has_alt_catalog_path = (tail === 'yes');
-        break;
-      case 'B':
-        manifest.catalog_size = parseInt(tail);
-        break;
-      case 'C':
-        manifest.catalog_hash = new cvmfs.util.hash(tail);
-        break;
-      case 'D':
-        manifest.ttl = parseInt(tail);
-        break;
-      case 'G':
-        manifest.garbage_collectable = (tail === 'yes');
-        break;
-      case 'H':
-        manifest.history_hash = new cvmfs.util.hash(tail);
-        break;
-      case 'M':
-        manifest.json_hash = new cvmfs.util.hash(tail);
-        break;
-      case 'N':
-        if (tail !== repo_name) return undefined;
-        manifest.repository_name = tail;
-        break;
-      case 'R':
-        manifest.root_hash = tail;
-        break;
-      case 'S':
-        manifest.revision = parseInt(tail);
-        break;
-      case 'T':
-        manifest.published_timestamp = parseInt(tail);
-        break;
-      case 'X':
-        manifest.cert_hash = new cvmfs.util.hash(tail);
-        break;
-    }
-
-    if (head === '-') {
-      const j = (parseInt(i) + 1).toString();
-      manifest.metadata_hash = new cvmfs.util.hash(lines[j]);
-      break;
-    }
-  }
-
-  if (manifest.catalog_hash === undefined ||
-      manifest.root_hash === undefined ||
-      manifest.ttl === undefined ||
-      manifest.revision === undefined) return undefined;
-
-  const metadata = data.substring(0, data.search('--'));
-  const computed_metadata_hash = cvmfs.util.digestString(metadata, manifest.metadata_hash.alg);
-  if (manifest.metadata_hash.hex !== computed_metadata_hash) return undefined;
-
-  var signature = data.substr(data.search('--') + 3 /*(--\n)*/);
-  signature = signature.substr(signature.search('\n') + 1 /*\n*/);
-  manifest.signature_hex = cvmfs.util.stringToHex(signature);
-
-  return manifest;
-};
-
-cvmfs.retriever.fetchManifest = function(repo_url, repo_name) {
-  const manifest_raw = cvmfs.retriever.downloadManifest(repo_url);
-  return cvmfs.retriever.parseManifest(manifest_raw, repo_name);
-};
-
-cvmfs.retriever.parseWhitelist = function(data, repo_name) {
-  const metadata = data.substr(0, data.search('--'));
-  var metadata_hash_str = data.substr(metadata.length + 3 /*(--\n)*/);
-  metadata_hash_str = metadata_hash_str.substr(0, metadata_hash_str.search('\n'));
-
-  const metadata_hash = new cvmfs.util.hash(metadata_hash_str);
-  const computed_metadata_hash = cvmfs.util.digestString(metadata, metadata_hash.alg);
-  if (metadata_hash.hex !== computed_metadata_hash) return undefined;
-
-  const whitelist = { metadata_hash: metadata_hash };
-  const lines = metadata.split('\n');
-
-  whitelist.repository_name = lines[2].substr(1);
-  if (whitelist.repository_name !== repo_name) return undefined;
-
-  const expiry_line = lines[1];
-  whitelist.expiry_date = new Date(
-    parseInt(expiry_line.substr(1, 4)),
-    parseInt(expiry_line.substr(5, 2)) - 1,
-    parseInt(expiry_line.substr(7, 2)),
-    parseInt(expiry_line.substr(9, 2))
-  );
-
-  whitelist.cert_fp = new cvmfs.util.hash(lines[3].replace(/\:/g, '').toLowerCase());
-
-  var signature = data.substr(metadata.length + 3 /*(--\n)*/);
-  signature = signature.substr(signature.search('\n') + 1 /*(\n)*/);
-  whitelist.signature_hex = cvmfs.util.stringToHex(signature);
-
-  return whitelist;
-};
-
-cvmfs.retriever.fetchWhitelist = function(repo_url, repo_name) {
-  const data = cvmfs.retriever.downloadWhitelist(repo_url);
-  return cvmfs.retriever.parseWhitelist(data, repo_name);
-};
-
-cvmfs.retriever.fetchCertificate = function(data_url, cert_hash) {
-  const data = cvmfs.retriever.downloadCertificate(data_url, cert_hash.download_handle);
-
-  const data_hex = cvmfs.util.stringToHex(data);
-  const data_hash = cvmfs.util.digestHex(data_hex, cert_hash.alg);
-
-  if (data_hash !== cert_hash.hex) {
-    console.log("The hash sums aren't equal")
-    return undefined;
-  }
-
-  const data_deflated = pako.inflate(data);
-  const decoder = new TextDecoder("utf-8");
-  const pem = decoder.decode(data_deflated);
-
-  const certificate = new X509();
-  certificate.readCertPEM(pem);
-  return certificate;
-};
-
-cvmfs.retriever.dataIsValid = function(data, hash) {
-  const data_hex = cvmfs.util.stringToHex(data);
-  const data_hash = cvmfs.util.digestHex(data_hex, hash.alg);
-  return data_hash === hash.hex;
 }
 
-cvmfs.retriever.fetchCatalog = function(data_url, catalog_hash) {
-  const data = cvmfs.retriever.downloadCatalog(data_url, catalog_hash.download_handle);
+export class Retriever {
+  constructor() {
+    this.cache = new Cache();
+  }
 
-  if (!cvmfs.retriever.dataIsValid(data, catalog_hash))
+  // Only works for http:// protocol, fails with https:// URLs
+  httpGet(url) {
+    return new Promise((resolve) => {
+      const request = get(url);
+
+      request.on('response', (res) => {
+          const { statusCode } = res;
+          if (statusCode !== 200) {
+              console.error('Error: Request Failed.\n' + `Status Code: ${statusCode}`);
+              res.resume();
+              return;
+          }
+          res.setEncoding('utf8');
+          let rawData = '';
+          res.on('data', (chunk) => (rawData += chunk));
+          res.on('end', () => resolve(rawData));
+      });
+
+      request.on('error', (err) => {
+          console.error('Error while downloading URL ' + url + ': ' + err.message);
+      });
+    });
+  }
+
+  async download(url) {
+    let responseText = this.cache.get(url);
+
+    if (responseText === null) {
+      const data = await this.httpGet(url);
+      this.cache.set(url, data);
+      responseText = data;
+    } else {
+      console.log('Using cached value for URL', url)
+    }
+    return responseText;
+  };
+
+  async downloadManifest(repo_url) {
+    const url = repo_url + '/.cvmfspublished';
+    return await this.download(url);
+  };
+
+  async downloadWhitelist(repo_url) {
+    const url = repo_url + '/.cvmfswhitelist';
+    return await this.download(url);
+  };
+
+  async downloadChunk(data_url, hash, suffix='') {
+    const url = [data_url, '/', hash.substr(0, 2), '/', hash.substr(2), suffix].join('');
+    return await this.download(url);
+  };
+
+  async downloadCertificate(data_url, hash) {
+    return await this.downloadChunk(data_url, hash, 'X');
+  };
+
+  async downloadCatalog(data_url, hash) {
+    return await this.downloadChunk(data_url, hash, 'C');
+  };
+
+  parseManifest(data, repoName) {
+    // Decoding accroding to https://cvmfs.readthedocs.io/en/stable/cpt-details.html#internal-manifest-structure
+    const manifest = new Manifest();
+    const lines = data.split('\n');
+
+    for (const i in lines) {
+      const line = lines[i];
+      const head = line.charAt(0);
+      const tail = line.substring(1);
+
+      switch (head) {
+        case 'A':
+          manifest.hasAltCatalogPath = tail === 'yes';
+          break;
+        case 'B':
+          manifest.catalogSize = parseInt(tail);
+          break;
+        case 'C':
+          manifest.catalogHash = new Hash(tail);
+          break;
+        case 'D':
+          manifest.ttl = parseInt(tail);
+          break;
+        case 'G':
+          manifest.garbageCollectable = tail === 'yes';
+          break;
+        case 'H':
+          manifest.historyHash = new Hash(tail);
+          break;
+        case 'M':
+          manifest.jsonHash = new Hash(tail);
+          break;
+        case 'N':
+          if (tail !== repoName) {
+            console.log('Error: tail is not eqaul to repo name:', tail, repoName);
+            return undefined;
+          }
+          manifest.repositoryName = tail;
+          break;
+        case 'R':
+          manifest.rootHash = tail;
+          break;
+        case 'S':
+          manifest.revision = parseInt(tail);
+          break;
+        case 'T':
+          manifest.publishedTimestamp = parseInt(tail);
+          break;
+        case 'X':
+          manifest.certHash = new Hash(tail);
+          break;
+      }
+
+      if (head === '-') {
+        const j = (parseInt(i) + 1).toString();
+        manifest.metadataHash = new Hash(lines[j]);
+        break;
+      }
+    }
+
+    if (manifest.catalogHash === undefined ||
+        manifest.rootHash === undefined ||
+        manifest.ttl === undefined ||
+        manifest.revision === undefined) {
+          console.log('Error: There is important information missing in the manifest');
+          return undefined;
+    } 
+
+    const metadata = data.substring(0, data.search('--'));
+    const computedMetadataHash = digestString(metadata, manifest.metadataHash.algorithm);
+    if (manifest.metadataHash.hex !== computedMetadataHash) {
+      console.log(
+        'Error: The metadataHash did not match the computed hash',
+        manifest.metadataHash.hex,
+        computedMetadataHash
+      );
+      return undefined;
+    } 
+
+    let signature = data.substr(data.search('--') + 3 /*(--\n)*/);
+    signature = signature.substr(signature.search('\n') + 1 /*\n*/);
+    manifest.signatureHex = stringToHex(signature);
+
+    return manifest;
+  }
+
+  async fetchManifest(repoURL, repoName) {
+    const manifestRaw = await this.downloadManifest(repoURL);
+    return this.parseManifest(manifestRaw, repoName);
+  };
+
+  parseWhitelist(data, repoName) {
+    const whitelist = new Whitelist();
+  
+    const metadata = data.substr(0, data.search('--'));
+    var metadataHashStr = data.substr(metadata.length + 3 /*(--\n)*/);
+    metadataHashStr = metadataHashStr.substr(0, metadataHashStr.search('\n'));
+
+    whitelist.metadataHash = new Hash(metadataHashStr);
+    const computedMetadataHash = digestString(metadata, whitelist.metadataHash.algorithm);
+    
+    if (whitelist.metadataHash.hex !== computedMetadataHash) {
+      console.log(
+        'Error: Whitelist metadata hash did not match the computated value:',
+        whitelist.metadataHash.hex,
+        computedMetadataHash
+    );
     return undefined;
+    }
+  
+    const lines = metadata.split('\n');
 
-  const db_data = pako.inflate(data);
-  return new SQL.Database(db_data);
-};
+    whitelist.repositoryName = lines[2].substr(1);
 
-cvmfs.retriever.fetchChunk = function(data_url, hash, decompress=true, partial=false) {
-  let download_handle = hash.download_handle;
-  if (partial) download_handle += "P";
-  const data = cvmfs.retriever.downloadChunk(data_url, download_handle);
+    if (whitelist.repositoryName !== repoName) {
+      console.log('Error: Wrong repository name in whitelist:', lines[2].substr(1), repoName);
+      return undefined;
+    }
 
-  if (!cvmfs.retriever.dataIsValid(data, hash))
-    return undefined;
+    const expiryLine = lines[1];
+    whitelist.expiryDate = new Date(
+      parseInt(expiryLine.substr(1, 4)),
+      parseInt(expiryLine.substr(5, 2)) - 1,
+      parseInt(expiryLine.substr(7, 2)),
+      parseInt(expiryLine.substr(9, 2))
+    );
 
-  if (decompress)
-    return pako.inflate(data);
+    whitelist.certFp = new Hash(lines[3].replace(/\:/g, '').toLowerCase());
 
-  if (cvmfs.retriever.text_encoder === undefined)
-    cvmfs.retriever.text_encoder = new TextEncoder();
-  return cvmfs.retriever.text_encoder.encode(data);
-};
+    let signature = data.substr(metadata.length + 3 /*(--\n)*/);
+    signature = signature.substr(signature.search('\n') + 1 /*(\n)*/);
+    whitelist.signatureHex = stringToHex(signature);
+
+    return whitelist;
+  }
+
+  async fetchWhitelist(repoURL, repoName) {
+    const data = await this.downloadWhitelist(repoURL);
+    return this.parseWhitelist(data, repoName);
+  }
+
+  cvmfsInflate(input) {
+    // Wokring inflate mechanism in CVMFS `cvmfs_swissknife zpipe -d`
+    // https://github.com/cvmfs/cvmfs/blob/devel/cvmfs/swissknife_zpipe.cc#L95       
+    return new Promise((resolve) => {
+        const swissknifeProcess = spawn('cvmfs_swissknife', ['zpipe', '-d']);
+        const stdinStream = new Readable();
+        stdinStream.push(input); // Add data to the internal queue for users of the stream to consume
+        stdinStream.push(null); // Signals the end of the stream (EOF)
+        stdinStream.pipe(swissknifeProcess.stdin);
+
+        swissknifeProcess.stdout.on('data', (stdout) => {
+            console.log('Received data from child process:', stdout);
+            resolve(stdout);
+        });
+
+        swissknifeProcess.stderr.on('data', (stderr) => {
+            console.log('Error: stderr in child process:', stderr);
+        });
+
+        swissknifeProcess.on('close', (code) => {
+            console.log(`child process exited with code ${code}`);
+        });
+    });
+
+    // return new Promise((resolve) => {
+    //     inflateRaw(input, (err, buffer) => {
+    //         if (!err) {
+    //             console.log(buffer.toString());
+    //             resolve(buffer.toString());
+    //         } else {
+    //             console.error('Error while decompressing:', err);
+    //         }
+    //     });
+    // });
+  }
+
+  async fetchCertificate(dataURL, certHash) {
+ 
+    const data = await this.downloadCertificate(dataURL, certHash.downloadHandle);
+
+    console.log('dataURL', dataURL);
+    console.log('certHash', certHash);
+
+    const dataHex = stringToHex(data);
+    
+    // TODO: Problem 1 calculates wrong hash
+    const dataHash = digestHex(dataHex, certHash.algorithm);
+
+    console.log('dataHex', dataHex);
+    console.log('dataHash', dataHash);
+    console.log('certHash.hex', certHash.hex);
+
+    const buffer = Buffer.from(data);
+
+    // TODO: Problem 2 decompression doesn't work with zlib, workaroud using cvmfs_swissknife
+    // const result = await this.cvmfsInflate(buffer.toString('utf8'));
+    // console.log('result', result);
+
+    if (dataHash !== certHash.hex) {
+      console.log("Error: The hash sums aren't equal")
+      return undefined;
+    }
+
+    // const decompressedData = inflate(data);
+    // const pem = Buffer.from(decompressedData).toString('utf8');
+    // console.log("Certificate PEM: ", pem);
+
+    const certificate = new X509();
+    certificate.readCertPEM(pem);
+    return certificate;
+  }
+
+  dataIsValid(data, hash) {
+    const dataHex = stringToHex(data);
+    const dataHash = digestHex(dataHex, hash.algorithm);
+    return dataHash === hash.hex;
+  }
+
+  async fetchCatalog (dataURL, catalogHash) {
+    const data = await this.downloadCatalog(dataURL, catalogHash.downloadHandle);
+
+    if (!this.dataIsValid(data, catalogHash)) {
+      console.log('Error: Data is invalid', catalogHash, data);
+      return undefined;
+    }
+      
+    const decompressedData = inflate(data);
+    return new SQL.Database(decompressedData);
+  }
+
+  async fetchChunk(data_url, hash, decompress=true, partial=false) {
+    let downloadHandle = hash.downloadHandle;
+    if (partial) {
+      downloadHandle += "P";
+    }
+    const data = await this.downloadChunk(data_url, downloadHandle);
+
+    if (!this.dataIsValid(data, hash)){
+      console.log('Error: Data is invalid', hash, data);
+      return undefined;
+    }
+    
+    if (decompress) {
+      return inflate(data);
+    } else {
+      return Buffer.from(data);
+    }
+  }
+}
