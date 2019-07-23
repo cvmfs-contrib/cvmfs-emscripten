@@ -1,42 +1,13 @@
-cvmfs.repo = function(base_url, repo_name) {
-  this._repo_url = cvmfs.util.repoURL(base_url, repo_name);
-  this._data_url = cvmfs.util.dataURL(base_url, repo_name);
+'use strict'
 
-  this._manifest = cvmfs.retriever.fetchManifest(this._repo_url, repo_name);
-  this._whitelist = cvmfs.retriever.fetchWhitelist(this._repo_url, repo_name);
-  this._cert = cvmfs.retriever.fetchCertificate(this._data_url, this._manifest.cert_hash);
-
-  /* verify whitelist signature */
-  var whitelist_verified = false;
-  const master_keys = cvmfs.getMasterKeys();
-  for (const key of master_keys) {
-    whitelist_verified = key.verifyRawWithMessageHex(
-      cvmfs.util.stringToHex(this._whitelist.metadata_hash.download_handle),
-      this._whitelist.signature_hex
-    );
-    if (whitelist_verified)
-      break;
-  }
-  if (!whitelist_verified)
-    throw new Error('Unable to verify whitelist');
-
-  /* verify certificate fingerprint */
-  const now = new Date();
-  if (now >= this._whitelist.expiry_date) return undefined;
-  const fingerprint = cvmfs.util.digestHex(this._cert.hex, this._whitelist.cert_fp.alg);
-  if (fingerprint !== this._whitelist.cert_fp.hex)
-    throw new Error('Unable to verify certificate');
-
-  /* verify manifest signature */
-  const signature = new KJUR.crypto.Signature({alg: 'SHA1withRSA'});
-  signature.init(this._cert.getPublicKey());
-  signature.updateString(this._manifest.metadata_hash.download_handle);
-  if (!signature.verify(this._manifest.signature_hex))
-    throw new Error('Unable to verify manifest');
-};
+import { createHash } from 'crypto';
+import { crypto } from 'jsrsasign';
+import { repoURL, dataURL, digestString, digestHex, stringToHex, Hash } from './util';
+import { Retriever } from './retriever';
+import { KeyManager } from './masterkeys';
 
 // Bit flags
-cvmfs.ENTRY_TYPE = Object.freeze({
+export const ENTRY_TYPE = Object.freeze({
   DIR: 1,
   NEST_TRANS: 2,
   REG: 4,
@@ -48,21 +19,92 @@ cvmfs.ENTRY_TYPE = Object.freeze({
 });
 
 // Bit flags
-cvmfs.CHUNK_HASH_ALG = Object.freeze({
+export const CHUNK_HASH_ALG = Object.freeze({
   RIPEMD_160: 1 << 8,
   SHAKE_128: 1 << 9
 });
 
 // Bit flags
-cvmfs.COMPRESSION_ALG = Object.freeze({
+export const COMPRESSION_ALG = Object.freeze({
   NO_COMPRESSION: 1 << 11
 });
 
-cvmfs.repo.prototype = {
-  getCatalog: function(hash) {
-    return cvmfs.retriever.fetchCatalog(this._data_url, hash);
-  },
-  getCatalogStats: function(catalog) {
+export class Repository {
+  constructor(baseURL, repoName) {
+    this.retriever = new Retriever();
+    this.keyManager = new KeyManager();
+
+    this._repoName = repoName;
+    this._repoURL = repoURL(baseURL, repoName);
+    this._dataURL = dataURL(baseURL, repoName);
+  }
+
+  async connect() {
+    // Explained in detail: https://cvmfs.readthedocs.io/en/stable/cpt-details.html
+    
+    this._manifest = await this.retriever.fetchManifest(this._repoURL, this._repoName);
+    
+    this._whitelist = await this.retriever.fetchWhitelist(this._repoURL, this._repoName);
+      
+    this._cert =  await this.retriever.fetchCertificate(this._dataURL, this._manifest.certHash);
+      
+    console.log("_manifest.certHash: ", this._manifest.certHash);
+    
+    /* verify whitelist signature */
+    let isWhitelistVerified = false;
+
+    for (const key of this.keyManager.getMasterKeys()) {
+      const downloadHandle = this._whitelist.metadataHash.downloadHandle;
+      const downloadHandleHex = stringToHex(downloadHandle);
+
+      console.log('downloadHandle', downloadHandle);
+      console.log('downloadHandleHex', downloadHandleHex);
+      console.log('signatureHex:', this._whitelist.signatureHex);
+
+      isWhitelistVerified = this.keyManager.verifyRawWithMessageHex(
+        key,
+        downloadHandleHex,
+        this._whitelist.signatureHex
+      );
+        
+      if (isWhitelistVerified) {
+        break;
+      }    
+    }
+    
+    console.log('isWhitelistVerified:', isWhitelistVerified);
+
+    if (!isWhitelistVerified) {
+      throw new Error('Error: Unable to verify whitelist');
+    }
+    
+    const now = new Date();
+    if (now >= this._whitelist.expiryDate) {
+      console.log('Error: The whitelist is expired.');
+      return undefined;
+    }
+    /* verify certificate fingerprint */
+    const fingerprint = digestHex(this._cert.hex, this._whitelist.certFp.algorithm);
+    if (fingerprint !== this._whitelist.certFp.hex) {
+      throw new Error('Unable to verify certificate');
+    }
+        
+    /* verify manifest signature */
+    const signature = new crypto.Signature({alg: 'SHA1withRSA'});
+    signature.init(this._cert.getPublicKey());
+    signature.updateString(this._manifest.metadataHash.downloadHandle);
+
+    if (!signature.verify(this._manifest.signatureHex)){
+      throw new Error('Unable to verify manifest');
+    }
+  }
+
+  async getCatalog(catalogHash) {
+    // TODO: Problem 3 need to find replacement for SQL library in third_party
+    return await this.retriever.fetchCatalog(this._dataURL, catalogHash);
+  }
+
+  getCatalogStats(catalog) {
     const result = catalog.exec('SELECT * FROM STATISTICS')[0].values;
 
     const catalog_stats = {};
@@ -73,8 +115,9 @@ cvmfs.repo.prototype = {
     }
 
     return catalog_stats;
-  },
-  getCatalogProperties: function(catalog) {
+  }
+
+  getCatalogProperties(catalog) {
     const result = catalog.exec('SELECT * FROM PROPERTIES')[0].values;
 
     const catalog_properties = {};
@@ -92,53 +135,63 @@ cvmfs.repo.prototype = {
     }
 
     return catalog_properties;
-  },
-  _md5PairFromPath: function(path) {
-    const md5hex = cvmfs.util.digestString(path, 'md5');
+  }
+
+  _md5PairFromPath(path) {
+    const hashData = createHash('md5').update(path, 'utf-8');
+    const hashHex = hashData.digest('hex');
 
     var bytes = new Array(16);
-    var i = md5hex.length;
-    while (i >= 0) {
-        bytes[15 - i/2] = md5hex.substr(i, 2);
-        i -= 2;
+    for (let i = hashHex.length; i >= 0; i -= 2) {
+      bytes[15 - i / 2] = hashHex.substr(i, 2);
     }
-
+    
     return {
       low: '0x' + bytes.slice(0, bytes.length/2).join(''),
       high: '0x' + bytes.slice(bytes.length/2).join('')
     };
-  },
-  getEntriesForParentPath: function(catalog, path) {
+  }
+
+  getEntriesForParentPath(catalog, path) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT name, flags FROM catalog WHERE parent_1 = ' + pair.high + ' AND parent_2 = ' + pair.low;
 
     const result = catalog.exec(query);
-    if (result[0] === undefined) return null;
+    if (result[0] === undefined) {
+      return null;
+    } 
 
     const entries = [];
     for (const row of result[0].values) {
-      if (!(row[1] & cvmfs.ENTRY_TYPE.HIDDEN))
+      if (!(row[1] & ENTRY_TYPE.HIDDEN))
         entries.push(row[0]);
     }
     return entries;
-  },
-  getContentForRegularFile: function(catalog, path, flags) {
+  }
+
+  getContentForRegularFile(catalog, path, flags) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT hex(hash) FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
 
     const result = catalog.exec(query);
-    if (result[0] === undefined) return null;
+    if (result[0] === undefined) {
+      return null;
+    }
 
     let hash_str = result[0].values[0][0].toLowerCase();
-    if (flags & cvmfs.CHUNK_HASH_ALG.SHAKE_128) hash_str += "-shake128";
-    else if (flags & cvmfs.CHUNK_HASH_ALG.RIPEMD_160) hash_str += "-rmd160";
-    const hash = new cvmfs.util.hash(hash_str);
+    if (flags & CHUNK_HASH_ALG.SHAKE_128) {
+      hash_str += "-shake128";
+    } else if (flags & CHUNK_HASH_ALG.RIPEMD_160) {
+      hash_str += "-rmd160";
+    }
+    const hash = new Hash(hash_str);
 
-    const decompress = !(flags & cvmfs.COMPRESSION_ALG.NO_COMPRESSION);
+    const decompress = !(flags & COMPRESSION_ALG.NO_COMPRESSION);
 
-    return cvmfs.retriever.fetchChunk(this._data_url, hash, decompress);
-  },
-  getChunksWithinRangeForPath: function(catalog, path, flags, low, high) {
+    return cvmfs.retriever.fetchChunk(this._dataURL, hash, decompress);
+  }
+
+  getChunksWithinRangeForPath(catalog, path, flags, low, high) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT hex(hash), size FROM chunks WHERE'
                   + ' md5path_1 = ' + pair.high
@@ -150,25 +203,26 @@ cvmfs.repo.prototype = {
     const result = catalog.exec(query);
     if (result[0] === undefined) return null;
 
-    const should_decompress = !(flags & cvmfs.COMPRESSION_ALG.NO_COMPRESSION);
+    const should_decompress = !(flags & COMPRESSION_ALG.NO_COMPRESSION);
     const chunks = result[0].values.map(e => {
       let hash_str = e[0].toLowerCase();
-      if (flags & cvmfs.CHUNK_HASH_ALG.SHAKE_128) {
+      if (flags & CHUNK_HASH_ALG.SHAKE_128) {
         hash_str += "-shake128";
-      } else if (flags & cvmfs.CHUNK_HASH_ALG.RIPEMD_160) {
+      } else if (flags & CHUNK_HASH_ALG.RIPEMD_160) {
         hash_str += "-rmd160";
       }
-      const hash = new cvmfs.util.hash(hash_str);
+      const hash = new Hash(hash_str);
 
-      const chunk = cvmfs.retriever.fetchChunk(this._data_url, hash, should_decompress, true);
+      const chunk = cvmfs.retriever.fetchChunk(this._dataURL, hash, should_decompress, true);
       const size = e[1];
 
       return {chunk, size};
     });
 
     return chunks;
-  },
-  getSymlinkForPath: function(catalog, path) {
+  }
+
+  getSymlinkForPath(catalog, path) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT symlink FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
 
@@ -176,8 +230,9 @@ cvmfs.repo.prototype = {
     if (result[0] === undefined) return null;
 
     return result[0].values[0][0];
-  },
-  getStatInfoForPath: function(catalog, path) {
+  }
+
+  getStatInfoForPath(catalog, path) {
     const pair = this._md5PairFromPath(path);
     const query = 'SELECT uid, gid, size, mtime, mode, flags ' +
       'FROM catalog WHERE md5path_1 = ' + pair.high + ' AND md5path_2 = ' + pair.low;
@@ -195,24 +250,35 @@ cvmfs.repo.prototype = {
       mode: row[4],
       flags: row[5]
     };
-  },
-  getNestedCatalogHash: function(catalog, path) {
+  }
+
+  getNestedCatalogHash(catalog, path) {
     const query = 'SELECT sha1 FROM nested_catalogs WHERE path = "' + path + '"';
 
     const result = catalog.exec(query);
     if (result[0] === undefined) return null;
 
-    return new cvmfs.util.hash(result[0].values[0][0]);
-  },
-  getBindMountpointHash: function(catalog, path) {
-    const query = 'SELECT sha1 FROM bind_mountpoints WHERE path = "' + path + '"';
+    return new Hash(result[0].values[0][0]);
+  }
+
+  getBindMountpointHash(catalog, path) {
+    const query = 'SELECT sha1 FROM fnd_mountpoints WHERE path = "' + path + '"';
 
     const result = catalog.exec(query);
     if (result[0] === undefined) return null;
 
-    return new cvmfs.util.hash(result[0].values[0][0]);
-  },
-  getManifest: function() { return this._manifest; },
-  getWhitelist: function() { return this._whitelist; },
-  getCertificate: function() { return this._cert; }
-};
+    return new Hash(result[0].values[0][0]);
+  }
+
+  getManifest() {
+    return this._manifest; 
+  }
+
+  getWhitelist() {
+    return this._whitelist;
+   }
+
+  getCertificate() {
+    return this._cert;
+  }
+}
