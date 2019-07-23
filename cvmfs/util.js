@@ -1,5 +1,10 @@
-cvmfs.util.repoURL = function(base_url, repo_name) {
-  return base_url + '/' + repo_name;
+'use strict';
+
+import { jsSHA } from 'jssha';
+import { crypto } from 'jsrsasign';
+
+export function repoURL(baseURL, repoName) {
+  return baseURL + '/' + repoName;
 }
 
 cvmfs.util.dataURL = function(base_url, repo_name) {
