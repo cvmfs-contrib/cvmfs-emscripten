@@ -264,28 +264,19 @@ export class Retriever {
     return this.parseWhitelist(data, repoName);
   }
 
-  cvmfsInflate(input) {
-    // Wokring inflate mechanism in CVMFS `cvmfs_swissknife zpipe -d`
-    // https://github.com/cvmfs/cvmfs/blob/devel/cvmfs/swissknife_zpipe.cc#L95       
+  async cvmfsInflate(input, url) {
+
     return new Promise((resolve) => {
-        const swissknifeProcess = spawn('cvmfs_swissknife', ['zpipe', '-d']);
-        const stdinStream = new Readable();
-        stdinStream.push(input); // Add data to the internal queue for users of the stream to consume
-        stdinStream.push(null); // Signals the end of the stream (EOF)
-        stdinStream.pipe(swissknifeProcess.stdin);
+      let spawnProcess = spawn('/bin/sh', [ '-c', `curl ${url} | cvmfs_swissknife zpipe -d` ])
+      let result = '';
 
-        swissknifeProcess.stdout.on('data', (stdout) => {
-            console.log('Received data from child process:', stdout);
-            resolve(stdout);
-        });
+      spawnProcess.stdout.on('data', (data) => {
+        result += data.toString()
+      });
 
-        swissknifeProcess.stderr.on('data', (stderr) => {
-            console.log('Error: stderr in child process:', stderr);
-        });
-
-        swissknifeProcess.on('close', (code) => {
-            console.log(`child process exited with code ${code}`);
-        });
+      spawnProcess.on('close', function() {
+        resolve(result);
+      });
     });
 
     // return new Promise((resolve) => {
