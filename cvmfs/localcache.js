@@ -81,15 +81,19 @@ export class Cache {
         let cached = false;
         while (!cached) {
             try {
-                this.localStorage.setItem(key, base64);
+                // this.localStorage.setItem(key, base64);
+                this.localStorage.setItem(key, value);
                 this.index.pushFront(key);
                 cached = true;
             } catch (e) {
+                console.log('ERROR:', e);
                 if (this.index.isEmpty()) {
                     cached = true;
                 }
                 else {
-                    this.localStorage.removeItem(this.index.popBack());
+                    const poppedBack = this.index.popBack();
+                    console.log('Removing key from cache: ', poppedBack)
+                    this.localStorage.removeItem(poppedBack);
                 }
             }
         }
