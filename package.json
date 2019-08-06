@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "server": "babel-node ./cvmfs/cvmfs.js"
+    "server": "babel-node ./cvmfs/cvmfs.js",
+    "test": "mocha --require @babel/register ./test/test.js"
   },
   "devDependencies": {
     "@babel/cli": "^7.5.5",
