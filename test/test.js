@@ -45,14 +45,6 @@ describe('jsrsasign', function () {
         it('deepStrictEqual - doPublic function returns correct value', function () {
             deepStrictEqual(decryptedDoPublic, decryptedModPowInt);
         });
-
-        it('doPublic function changes the input', function () {
-            notDeepStrictEqual(signatureBigInteger, decryptedDoPublic); 
-        });
-
-        it("doPublic function changes the bit length", function () {
-            notStrictEqual(signatureBigInteger.bitLength(), decryptedDoPublic.bitLength());
-        });
     });
 
     describe('bitLength', function(){
