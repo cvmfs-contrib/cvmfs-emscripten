@@ -229,8 +229,8 @@ export class Retriever {
         'Error: Whitelist metadata hash did not match the computated value:',
         whitelist.metadataHash.hex,
         computedMetadataHash
-    );
-    return undefined;
+      );
+      return undefined;
     }
   
     const lines = metadata.split('\n');
@@ -252,8 +252,8 @@ export class Retriever {
 
     whitelist.certFp = new Hash(lines[3].replace(/\:/g, '').toLowerCase());
 
-    let signature = data.substr(metadata.length + 3 /*(--\n)*/);
-    signature = signature.substr(signature.search('\n') + 1 /*(\n)*/);
+    let signature = data.substring(metadata.length + 3 /*(--\n)*/);  // cut the whitelist content and the separator
+    signature = signature.substring(signature.search('\n') + 1 /*(\n)*/);  // cut the hash
     whitelist.signatureHex = stringToHex(signature);
 
     return whitelist;
@@ -291,15 +291,31 @@ export class Retriever {
     // });
   }
 
-  async fetchCertificate(dataURL, certHash) {
- 
-    const data = await this.downloadCertificate(dataURL, certHash.downloadHandle);
+  async cvmfsHash(url) {
+
+    return new Promise((resolve) => {
+      let spawnProcess = spawn('/bin/sh', [ '-c', `curl ${url} | sha1sum` ])
+      let hashFromCurl = '';
+
+      spawnProcess.stdout.on('data', (data) => {
+        hashFromCurl += data.toString()
+      });
+
+      spawnProcess.on('close', () => {
+        console.log("hashFromCurl", hashFromCurl);
+        hashFromCurl = hashFromCurl.replace('\n', '').replace('-', '').trim();
+        console.log("hashFromCurl", hashFromCurl);
+        resolve(hashFromCurl);
+      });
+    });
+  }
 
     console.log('dataURL', dataURL);
     console.log('certHash', certHash);
 
+  async fetchCertificate(dataURL, certHash) {
+    const data = await this.downloadCertificate(dataURL, certHash.downloadHandle);
     const dataHex = stringToHex(data);
-    
     // TODO: Problem 1 calculates wrong hash
     const dataHash = digestHex(dataHex, certHash.algorithm);
 
@@ -310,20 +326,33 @@ export class Retriever {
     const buffer = Buffer.from(data);
 
     // TODO: Problem 2 decompression doesn't work with zlib, workaroud using cvmfs_swissknife
-    // const result = await this.cvmfsInflate(buffer.toString('utf8'));
-    // console.log('result', result);
+    const url = [dataURL, '/', certHash.downloadHandle.substr(0, 2), '/', certHash.downloadHandle.substr(2), 'X'].join('');
+    const decompressedData = await this.cvmfsInflate(data, url);
+    const fetchCertWithCurl = await this.cvmfsHash(url); //curlCertHash
+    console.log("fetchCertWithCurl",fetchCertWithCurl);
 
-    if (dataHash !== certHash.hex) {
+    //  const result = await this.cvmfsInflate(url);
+     console.log('decompressedData', decompressedData);
+    // console.log("certHash", certHash);
+    // if (dataHash !== certHash.hex) {
+    //   console.log("Error: The hash sums aren't equal")
+    //   return undefined;
+    // }
+
+    if (fetchCertWithCurl !== certHash.hex) {
       console.log("Error: The hash sums aren't equal")
       return undefined;
+    } else {
+      console.log("The hash sums are equal");
     }
 
     // const decompressedData = inflate(data);
     // const pem = Buffer.from(decompressedData).toString('utf8');
-    // console.log("Certificate PEM: ", pem);
+    console.log("Certificate PEM: ", decompressedData);
 
     const certificate = new X509();
-    certificate.readCertPEM(pem);
+    certificate.readCertPEM(decompressedData);
+    console.log('certificate', certificate);
     return certificate;
   }
 
