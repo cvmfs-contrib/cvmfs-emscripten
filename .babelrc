@@ -1,4 +1,10 @@
 {
   "presets": ["@babel/preset-env"],
-  "plugins": ["@babel/plugin-transform-strict-mode"]
+  "plugins": ["@babel/plugin-transform-strict-mode", 
+    ["@babel/plugin-transform-runtime",
+      {
+        "regenerator": true
+      }
+    ]
+  ] 
 }

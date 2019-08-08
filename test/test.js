@@ -1,7 +1,8 @@
 import { strictEqual, notStrictEqual, deepStrictEqual, notDeepStrictEqual, ok } from 'assert';
 import { KeyManager } from '../cvmfs/masterkeys';
 import { KEYUTIL, BigInteger } from 'jsrsasign';
-import { stringToHex } from '../cvmfs/util';
+import { stringToHex, repoURL } from '../cvmfs/util';
+import { Retriever } from "../cvmfs/retriever";
 
 const atlasPublicKey = '-----BEGIN PUBLIC KEY-----\
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAukBusmYyFW8KJxVMmeCj\
@@ -12,6 +13,21 @@ SNDwZO9z/YtBFil/Ca8FJhRPFMKdvxK+ezgq+OQWAerVNX7fArMC+4Ya5pF3ASr6\
 3mlvIsBpejCUBygV4N2pxIcPJu/ZDaikmVvdPTNOTZlIFMf4zIP/YHegQSJmOyVp\
 HQIDAQAB\
 -----END PUBLIC KEY-----';
+
+function oldStringToHex(input) {
+    const len = input.length;
+    const hex = new Array(len);
+    for (var i = 0; i < len; i++) {
+        const byte = input.charCodeAt(i) & 0xff;
+        hex[i] = ('0' + byte.toString(16)).slice(-2);
+    }
+    return hex.join('');retriever
+}
+
+function newStringToHex(input) {
+    const buffer = Buffer.from(input, 'binary');
+    return buffer.toString('hex');
+}
 
 describe('masterkeys', function () {
     const keyManager = new KeyManager();
@@ -61,6 +77,40 @@ describe('jsrsasign', function () {
     describe('calculateHex', function () {
         it('calculateHex - verifyRawWithMessageHex works as expected with the given input', function () {
             deepStrictEqual(decryptedDoPublicHex, downloadHandleHex);
+        });
+    });
+});
+
+describe('stringToHex', function () {
+    const input = 'cf8ca7d2bade25ca150075fbc8b5c50ddf507274';
+    
+    describe('stringToHex', function () {
+        it('oldString of calculation is deepStrictEqual with newString', function () {
+
+            const oldString = oldStringToHex(input);
+            const newString = newStringToHex(input);
+
+            deepStrictEqual(oldString, newString);
+        });
+    });
+
+    describe('binary stringToHex',  function() {
+        it('oldBinary of calculation string is deepStrictEqual with newBinary', async () => {
+
+            const baseURL = 'http://cvmfs-stratum-one.cern.ch/cvmfs';
+            const repoName = 'atlas.cern.ch';
+            const url = repoURL(baseURL, repoName);
+
+            const retriever = new Retriever();
+            const manifestRaw = await retriever.downloadManifest(url);
+
+            let signature = manifestRaw.substr(manifestRaw.search('--') + 3 /*(--\n)*/);
+            signature = signature.substr(signature.search('\n') + 1 /*\n*/);
+
+            const oldBinary = oldStringToHex(signature);
+            const newBinary = newStringToHex(signature);
+
+            deepStrictEqual(oldBinary, newBinary);
         });
     });
 });
