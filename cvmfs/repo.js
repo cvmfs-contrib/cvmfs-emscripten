@@ -63,7 +63,7 @@ export class Repository {
 
       isWhitelistVerified = this.keyManager.verifyRawWithMessageHex(
         key,
-        downloadHandleHex,
+        downloadHandleHex, // We expect the signature to RSA decrypt to this hash value
         this._whitelist.signatureHex
       );
         
