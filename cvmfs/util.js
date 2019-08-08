@@ -12,7 +12,7 @@ export function dataURL(baseURL, repoName) {
 }
 
 export function stringToHex(input) {
-  const buffer = Buffer.from(input, 'utf8');
+  const buffer = Buffer.from(input, 'binary');
   return buffer.toString('hex');
 }
 
