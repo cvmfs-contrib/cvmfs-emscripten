@@ -18,10 +18,10 @@ repository.connect().then(() => {
     console.log(repository.getCertificate());
     console.log('------------------------------------------------------------------');
     
-    repository.getCatalog(manifest.catalogHash).then((catalog) => {
-        const statistics = repository.getCatalogStats(catalog);
-        console.log(statistics);
-    });
+    // repository.getCatalog(manifest.catalogHash).then((catalog) => {
+    //     const statistics = repository.getCatalogStats(catalog);
+    //     console.log(statistics);
+    // });
 });
 
 
