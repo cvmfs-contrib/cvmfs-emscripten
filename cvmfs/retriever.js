@@ -55,7 +55,7 @@ export class Retriever {
               res.resume();
               return;
           }
-          res.setEncoding('utf8');
+          res.setEncoding('binary');
           let rawData = '';
           res.on('data', (chunk) => (rawData += chunk));
           res.on('end', () => resolve(rawData));
