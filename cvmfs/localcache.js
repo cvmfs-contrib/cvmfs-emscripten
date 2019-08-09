@@ -71,7 +71,7 @@ class LeastRecentlyUsed {
 export class Cache {
     constructor(){
         this.index = new LeastRecentlyUsed();
-        this.localStorage = new LocalStorage('./cache'); 
+        this.localStorage = new LocalStorage('./cache', Number.MAX_VALUE); 
     }
 
     set(key, value) {
