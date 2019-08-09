@@ -108,6 +108,9 @@ export class Repository {
     if (!signature.verify(this._manifest.signatureHex)){
       throw new Error('Unable to verify manifest');
     }
+    
+    this._metainfo =  await this.retriever.fetchMetainfo(this._dataURL, this._manifest.metainfoHash);
+
   }
 
   async getCatalog(catalogHash) {
@@ -291,5 +294,9 @@ export class Repository {
 
   getCertificate() {
     return this._cert;
+  }
+
+  getMetainfo() {
+    return this._metainfo;
   }
 }

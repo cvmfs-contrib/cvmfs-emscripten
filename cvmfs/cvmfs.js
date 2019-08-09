@@ -16,6 +16,7 @@ repository.connect().then(() => {
     console.log(manifest);
     console.log(repository.getWhitelist());
     console.log(repository.getCertificate());
+    console.log(repository.getMetainfo());
     console.log('------------------------------------------------------------------');
     
     // repository.getCatalog(manifest.catalogHash).then((catalog) => {

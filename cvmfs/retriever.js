@@ -19,7 +19,7 @@ export class Manifest {
     this.catalogSize = undefined;
     this.garbageCollectable = undefined;
     this.historyHash = undefined;
-    this.jsonHash = undefined;
+    this.metainfoHash = undefined;
     this.repositoryName = undefined;
     this.publishedTimestamp = undefined;
     this.certHash = undefined;
@@ -119,6 +119,10 @@ export class Retriever {
     return await this.downloadChunk(data_url, hash, 'X');
   };
 
+  async downloadMetainfo(data_url, hash) {
+    return await this.downloadChunk(data_url, hash, 'M');
+  };
+
   async downloadCatalog(data_url, hash) {
     return await this.downloadChunk(data_url, hash, 'C');
   };
@@ -153,7 +157,7 @@ export class Retriever {
           manifest.historyHash = new Hash(tail);
           break;
         case 'M':
-          manifest.jsonHash = new Hash(tail);
+          manifest.metainfoHash = new Hash(tail);
           break;
         case 'N':
           if (tail !== repoName) {
@@ -352,12 +356,27 @@ export class Retriever {
 
     // const decompressedData = inflate(data);
     // const pem = Buffer.from(decompressedData).toString('utf8');
-    console.log("Certificate PEM: ", decompressedData);
+    // console.log("Certificate PEM: ", decompressedData);
 
     const certificate = new X509();
     certificate.readCertPEM(decompressedData);
-    console.log('certificate', certificate);
     return certificate;
+  }
+
+  async fetchMetainfo(dataURL, metainfoHash) {
+    const data = await this.downloadMetainfo(dataURL, metainfoHash.downloadHandle);
+    const url = [dataURL, '/', metainfoHash.downloadHandle.substr(0, 2), '/', metainfoHash.downloadHandle.substr(2), 'M'].join('');
+    const decompressedData = await this.cvmfsInflate(data, url);
+    const fetchCertWithCurl = await this.cvmfsHash(url); //curlCertHash
+
+    if (fetchCertWithCurl !== metainfoHash.hex) {
+      console.log("Error: The metainfoHash sums aren't equal");
+      return undefined;
+    } else {
+      console.log("The metainfoHash sums are equal metainfoHash");
+    }
+
+    return decompressedData;
   }
 
   dataIsValid(data, hash) {
