@@ -253,7 +253,7 @@ export class Retriever {
       parseInt(expiryLine.substr(7, 2)),
       parseInt(expiryLine.substr(9, 2))
     );
-
+    // TODO: check how dose it work in another repositoris 
     whitelist.certificateFingerprint = [
       new Hash(lines[3].replace(/\:/g, '').toLowerCase()),
       new Hash(lines[4].replace(/\:/g, '').toLowerCase()),
@@ -310,42 +310,23 @@ export class Retriever {
       });
 
       spawnProcess.on('close', () => {
-        console.log("hashFromCurl", hashFromCurl);
         hashFromCurl = hashFromCurl.replace('\n', '').replace('-', '').trim();
-        console.log("hashFromCurl", hashFromCurl);
         resolve(hashFromCurl);
       });
     });
   }
 
-    console.log('dataURL', dataURL);
-    console.log('certHash', certHash);
 
   async fetchCertificate(dataURL, certHash) {
     const data = await this.downloadCertificate(dataURL, certHash.downloadHandle);
     const dataHex = stringToHex(data);
-    // TODO: Problem 1 calculates wrong hash
-    const dataHash = digestHex(dataHex, certHash.algorithm);
-
-    console.log('dataHex', dataHex);
-    console.log('dataHash', dataHash);
-    console.log('certHash.hex', certHash.hex);
-
-    const buffer = Buffer.from(data);
+    // const buffer = Buffer.from(data);
+    // const dataHash = digestHex(dataHex, certHash.algorithm);
 
     // TODO: Problem 2 decompression doesn't work with zlib, workaroud using cvmfs_swissknife
     const url = [dataURL, '/', certHash.downloadHandle.substr(0, 2), '/', certHash.downloadHandle.substr(2), 'X'].join('');
     const decompressedData = await this.cvmfsInflate(data, url);
     const fetchCertWithCurl = await this.cvmfsHash(url); //curlCertHash
-    console.log("fetchCertWithCurl",fetchCertWithCurl);
-
-    //  const result = await this.cvmfsInflate(url);
-     console.log('decompressedData', decompressedData);
-    // console.log("certHash", certHash);
-    // if (dataHash !== certHash.hex) {
-    //   console.log("Error: The hash sums aren't equal")
-    //   return undefined;
-    // }
 
     if (fetchCertWithCurl !== certHash.hex) {
       console.log("Error: The hash sums aren't equal")

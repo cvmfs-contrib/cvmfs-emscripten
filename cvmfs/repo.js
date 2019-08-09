@@ -43,23 +43,17 @@ export class Repository {
     // Explained in detail: https://cvmfs.readthedocs.io/en/stable/cpt-details.html
     
     this._manifest = await this.retriever.fetchManifest(this._repoURL, this._repoName);
+    // console.log("this._manifest: ", this._manifest);
     
     this._whitelist = await this.retriever.fetchWhitelist(this._repoURL, this._repoName);
       
     this._cert =  await this.retriever.fetchCertificate(this._dataURL, this._manifest.certHash);
-      
-    console.log("_manifest.certHash: ", this._manifest.certHash);
-    
     /* verify whitelist signature */
     let isWhitelistVerified = false;
 
     for (const key of this.keyManager.getMasterKeys()) {
       const downloadHandle = this._whitelist.metadataHash.downloadHandle;
       const downloadHandleHex = stringToHex(downloadHandle);
-
-      console.log('downloadHandle', downloadHandle);
-      console.log('downloadHandleHex', downloadHandleHex);
-      console.log('signatureHex:', this._whitelist.signatureHex);
 
       isWhitelistVerified = this.keyManager.verifyRawWithMessageHex(
         key,
