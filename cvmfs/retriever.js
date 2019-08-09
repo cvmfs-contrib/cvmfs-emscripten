@@ -33,7 +33,7 @@ export class Whitelist {
     this.metadataHash = undefined;
     this.repositoryName = undefined;
     this.expiryDate = undefined;
-    this.certFp = undefined;
+    this.certificateFingerprint = undefined;
     this.signatureHex = undefined;
   }
 }
@@ -250,8 +250,12 @@ export class Retriever {
       parseInt(expiryLine.substr(9, 2))
     );
 
-    whitelist.certFp = new Hash(lines[3].replace(/\:/g, '').toLowerCase());
-
+    whitelist.certificateFingerprint = [
+      new Hash(lines[3].replace(/\:/g, '').toLowerCase()),
+      new Hash(lines[4].replace(/\:/g, '').toLowerCase()),
+      new Hash(lines[5].replace(/\:/g, '').toLowerCase())
+    ];
+    
     let signature = data.substring(metadata.length + 3 /*(--\n)*/);  // cut the whitelist content and the separator
     signature = signature.substring(signature.search('\n') + 1 /*(\n)*/);  // cut the hash
     whitelist.signatureHex = stringToHex(signature);

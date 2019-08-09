@@ -83,10 +83,21 @@ export class Repository {
       console.log('Error: The whitelist is expired.');
       return undefined;
     }
+
     /* verify certificate fingerprint */
-    const fingerprint = digestHex(this._cert.hex, this._whitelist.certFp.algorithm);
-    if (fingerprint !== this._whitelist.certFp.hex) {
-      throw new Error('Unable to verify certificate');
+    let newAlgoritm = undefined;
+    let newDownloadHandle = undefined;
+
+    const checkCertificateFingerprint = this._whitelist.certificateFingerprint.map( e => {
+      newDownloadHandle = e.downloadHandle.substring(0, e.downloadHandle.indexOf('#')).trim();
+      newAlgoritm = e.algorithm;
+      return newDownloadHandle;
+    });
+  
+    const fingerprint = digestHex(this._cert.hex, newAlgoritm);    
+  
+    if(checkCertificateFingerprint.includes(fingerprint) === false){
+      throw new Error("Unable to verify certificate");
     }
         
     /* verify manifest signature */
