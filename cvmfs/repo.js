@@ -110,7 +110,7 @@ export class Repository {
     }
     
     this._metainfo =  await this.retriever.fetchMetainfo(this._dataURL, this._manifest.metainfoHash);
-
+    this._revision =  this._manifest.revision;
   }
 
   async getCatalog(catalogHash) {
@@ -298,5 +298,9 @@ export class Repository {
 
   getMetainfo() {
     return this._metainfo;
+  }
+
+  getRevision() {
+    return this._revision;
   }
 }
