@@ -253,12 +253,11 @@ export class Retriever {
       parseInt(expiryLine.substr(7, 2)),
       parseInt(expiryLine.substr(9, 2))
     );
-    // TODO: check how dose it work in another repositoris 
-    whitelist.certificateFingerprint = [
-      new Hash(lines[3].replace(/\:/g, '').toLowerCase()),
-      new Hash(lines[4].replace(/\:/g, '').toLowerCase()),
-      new Hash(lines[5].replace(/\:/g, '').toLowerCase())
-    ];
+    
+    whitelist.certificateFingerprint = [];
+    for (let i = 3; i < metadata.split(/\r\n|\r|\n/).length - 1; i++){
+      whitelist.certificateFingerprint.push(new Hash(lines[i].replace(/\:/g, '').toLowerCase()))
+    }
     
     let signature = data.substring(metadata.length + 3 /*(--\n)*/);  // cut the whitelist content and the separator
     signature = signature.substring(signature.search('\n') + 1 /*(\n)*/);  // cut the hash
