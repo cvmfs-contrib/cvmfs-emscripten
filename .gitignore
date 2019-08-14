@@ -5,3 +5,4 @@ tests/build/
 cvmfs.js
 cache/
 .vscode
+metainfofile.json
