@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "chai": "^4.2.0",
+    "concurrently": "^4.1.2",
+    "express": "^4.17.1",
     "jsrsasign": "^8.0.12",
     "jsrsasign-util": "^1.0.0",
     "jssha": "^2.3.1",
