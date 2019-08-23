@@ -34,6 +34,7 @@ export class Repository {
     this.retriever = new Retriever();
     this.keyManager = new KeyManager();
 
+    this._baseURL = baseURL;
     this._repoName = repoName;
     this._repoURL = repoURL(baseURL, repoName);
     this._dataURL = dataURL(baseURL, repoName);
@@ -105,6 +106,7 @@ export class Repository {
     
     this._metainfo =  await this.retriever.fetchMetainfo(this._dataURL, this._manifest.metainfoHash);
     this._revision =  this._manifest.revision;
+    this._publishedTimestamp =  this._manifest.publishedTimestamp;
   }
 
   async getCatalog(catalogHash) {
@@ -296,5 +298,9 @@ export class Repository {
 
   getRevision() {
     return this._revision;
+  }
+
+  getPublishedTimestamp() {
+    return this._publishedTimestamp;
   }
 }
