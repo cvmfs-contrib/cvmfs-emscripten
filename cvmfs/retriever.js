@@ -42,7 +42,7 @@ export class Retriever {
   constructor() {
     this.cache = new Cache();
   }
-
+  
   // Only works for http:// protocol, fails with https:// URLs
   httpGet(url) {
     return new Promise((resolve) => {
@@ -68,9 +68,9 @@ export class Retriever {
   }
 
   async download(url) {
-    let responseText = this.cache.get(url);
+    // let responseText = this.cache.get(url);
 
-    if (responseText === null) {
+    // if (responseText === null) {
       const data = await this.httpGet(url);
       const useSpan = function(callback) {
         // console.log("Display url inside useSpan: ", url)
@@ -92,12 +92,14 @@ export class Retriever {
         this.cache.set(url, result);
       }
 
-      await useSpan(saveCache);
-      responseText = data;
-    } else {
-      console.log('Using cached value for URL', url)
-    }
-    return responseText;
+      // await useSpan(saveCache);
+      // responseText = data;
+    // } 
+    // else {
+      // console.log('Using cached value for URL', url)
+    // }
+    // return responseText;
+    return data;
   };
 
   async downloadManifest(repo_url) {
