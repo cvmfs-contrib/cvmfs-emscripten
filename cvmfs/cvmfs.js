@@ -1,12 +1,14 @@
 import { Repository } from "./repo";
+import express from 'express';
 const fs = require('fs');
-
 // TODO: Deprecated
 // const cvmfs = {
 //   retriever: {},
 //   cache: {},
 //   util: {},
 // };
+
+const app = express();
 
 // TODO: Promise -> then chain
 const repositoryWebsite = 'http://cvmfs-stratum-one.cern.ch/cvmfs';
@@ -86,13 +88,18 @@ repository.connect().then(() => {
                     };
                     console.log("File has been created");
                 });
-                // console.log("newJson", newJson);
+                console.log("newJson", newJson);
             });        
     };
+
+    app.get('/api', (req, res) => {
+        const repositoryJson =  newJson;
+
+        res.json(repositoryJson);
+      });
+      
+      const port = 5000;
+      
+      app.listen(port, () => `Server running on port ${port}`);
     console.log('------------------------------------------------------------------');
-    
-    // repository.getCatalog(manifest.catalogHash).then((catalog) => {
-    //     const statistics = repository.getCatalogStats(catalog);
-    //     console.log(statistics);
-    // });
 });
