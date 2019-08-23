@@ -27,8 +27,9 @@ repository.connect().then(() => {
 
     console.log('------------------------------------------------------------------');
     console.log(manifest);
-    console.log(whitelist);
-    console.log(repository.getCertificate());
+    console.log(manifest.rootHash);
+    // console.log(whitelist);
+    // console.log(repository.getCertificate());
     console.log(metainfoJson);
 
     let newJson = {};
@@ -40,6 +41,7 @@ repository.connect().then(() => {
     let i = 1;
     let publishedTimestamp = '';
     let stratumOneAllRevision = [];
+    let hashAlgorithm = '';
 
     for (const key of metainfoJson['recommended-stratum1s']){
         console.log("key", key);
@@ -81,6 +83,14 @@ repository.connect().then(() => {
                 } else if (stratumOne.find(x => x.health.includes('green') && !x.health.includes('yellow') && !x.health.includes('red'))){
                     healthStratumOne = 'green';
                 }
+
+                if(manifest.rootHash.includes("rmd160")){
+                    hashAlgorithm = "rmd160";
+                } else if (manifest.rootHash.includes("shake128")){
+                    hashAlgorithm = "shake128";
+                } else {
+                    hashAlgorithm = "SHA1";
+                }
                 
             }).then(() => {
                 newJson.administrator = metainfoJson.administrator;
@@ -104,8 +114,8 @@ repository.connect().then(() => {
                     manifest: '',
                     whitelist: '',
                 };
-                newJson.rootHash = '';
-                newJson.hashAlgorithm = '';
+                newJson.rootHash = manifest.rootHash;
+                newJson.hashAlgorithm = hashAlgorithm;
 
                 console.log("stratumOneAllRevision", stratumOneAllRevision);
 
