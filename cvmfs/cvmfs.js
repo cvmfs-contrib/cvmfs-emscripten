@@ -20,15 +20,16 @@ const repository = new Repository(repositoryWebsite, repositoryName);
 repository.connect().then(() => {
     const manifest = repository.getManifest();
     const metainfo = repository.getMetainfo();
+    const whitelist = repository.getWhitelist();
     const metainfoJson = JSON.parse(metainfo)
     const repositoryRevision = repository.getRevision();
+    const repositoryPublishedTimestamp = repository.getPublishedTimestamp();
 
     console.log('------------------------------------------------------------------');
     console.log(manifest);
-    console.log(repository.getWhitelist());
+    console.log(whitelist);
     console.log(repository.getCertificate());
-    // console.log(metainfoJson);
-    // console.log(metainfoJson.administrator);
+    console.log(metainfoJson);
 
     let newJson = {};
     let recommendedStratumOne = '';
@@ -36,12 +37,21 @@ repository.connect().then(() => {
     let stratumOne = [];
     let repositoryState = '';
     let healthStratumOne = '';
+    let i = 1;
+    let publishedTimestamp = '';
+    let stratumOneAllRevision = [];
 
     for (const key of metainfoJson['recommended-stratum1s']){
+        console.log("key", key);
         recommendedStratumOne = key.replace(`/${repositoryName}`, '').trim();
-        const stratumOneRepository = new Repository(recommendedStratumOne, repositoryName);
+        const stratumOneRepository = new Repository(recommendedStratumOne, repositoryName)
+            console.log("OUT recommendedStratumOne",recommendedStratumOne);
+            
             stratumOneRepository.connect().then(() => {
+                // console.log("IN stratumOneRepository", stratumOneRepository);
+                // console.log("IN recommendedStratumOne",stratumOneRepository._baseURL);
                 revision = stratumOneRepository.getRevision();
+                publishedTimestamp = stratumOneRepository.getPublishedTimestamp();
                 // Assign state of repository
                 if(repositoryRevision === revision) {
                     repositoryState = 'green';
@@ -52,10 +62,16 @@ repository.connect().then(() => {
                 };
 
                 stratumOne.push({
-                    url: recommendedStratumOne,
+                    url: stratumOneRepository._baseURL,
                     revision: revision,
                     health : repositoryState,
+                    id: i++,
+                    publishedTimestamp: publishedTimestamp,
+                    name: stratumOneRepository._baseURL + "/info/v1/meta.json",
+                    location: ''
                 });
+
+                stratumOneAllRevision.push(revision);
 
                 // Chceck revisoin for all stratumOne repositoris
                 if (stratumOne.find(x => x.health.includes('red'))) {
@@ -74,11 +90,24 @@ repository.connect().then(() => {
                 newJson.url = metainfoJson.url;
                 newJson.recommendedStratum0 = {
                     url: metainfoJson['recommended-stratum0'],
-                    revision: repositoryRevision
+                    revision: repositoryRevision,
+                    publishedTimestamp:repositoryPublishedTimestamp
                 };
                 newJson.recommendedStratum1 = stratumOne;
                 newJson.custom = metainfoJson.custom;
                 newJson.health = healthStratumOne;
+                newJson.oldestRevisionStratumOne = Math.min(...stratumOneAllRevision);
+                newJson.whitelistExpiryDate = whitelist.expiryDate;
+                newJson.download = {
+                    catalog: '',
+                    certificate: '',
+                    manifest: '',
+                    whitelist: '',
+                };
+                newJson.rootHash = '';
+                newJson.hashAlgorithm = '';
+
+                console.log("stratumOneAllRevision", stratumOneAllRevision);
 
                 let jsonStr = JSON.stringify(newJson);
 
