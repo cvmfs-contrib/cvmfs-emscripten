@@ -42,7 +42,7 @@ export class Retriever {
   constructor() {
     this.cache = new Cache();
   }
-  
+
   // Only works for http:// protocol, fails with https:// URLs
   httpGet(url) {
     return new Promise((resolve) => {
@@ -104,6 +104,11 @@ export class Retriever {
 
   async downloadManifest(repo_url) {
     const url = repo_url + '/.cvmfspublished';
+    return await this.download(url);
+  };
+
+  async downloadMetainfoStratumOne(repo_url) {
+    const url = repo_url + '/info/v1/meta.json';
     return await this.download(url);
   };
 

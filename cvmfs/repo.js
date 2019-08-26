@@ -107,6 +107,7 @@ export class Repository {
     this._metainfo =  await this.retriever.fetchMetainfo(this._dataURL, this._manifest.metainfoHash);
     this._revision =  this._manifest.revision;
     this._publishedTimestamp =  this._manifest.publishedTimestamp;
+    this._metainfoForStratumOne =  await this.retriever.downloadMetainfoStratumOne(this._baseURL);
   }
 
   async getCatalog(catalogHash) {
@@ -302,5 +303,9 @@ export class Repository {
 
   getPublishedTimestamp() {
     return this._publishedTimestamp;
+  }
+
+  getMetainfoForStratumOne() {
+    return this._metainfoForStratumOne;
   }
 }

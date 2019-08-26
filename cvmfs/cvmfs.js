@@ -1,20 +1,16 @@
 import { Repository } from "./repo";
 import express from 'express';
 const fs = require('fs');
-// TODO: Deprecated
-// const cvmfs = {
-//   retriever: {},
-//   cache: {},
-//   util: {},
-// };
 
 const app = express();
 
 // TODO: Promise -> then chain
+// http://cvmfs-stratum-one.cern.ch/cvmfs/cms.cern.ch
 const repositoryWebsite = 'http://cvmfs-stratum-one.cern.ch/cvmfs';
 const repositoryName = 'atlas.cern.ch';
 // const repositoryName = 'atlas-nightlies.cern.ch';
 // const repositoryName = 'alice-ocdb.cern.ch';
+
 const repository = new Repository(repositoryWebsite, repositoryName);
 
 repository.connect().then(() => {
@@ -62,6 +58,9 @@ repository.connect().then(() => {
                 } else if (repositoryRevision !== revision) {
                     repositoryState = 'red';
                 };
+        
+                const metainfoForStratumOne = stratumOneRepository.getMetainfoForStratumOne();
+                const metainfoForStratumOneJson = JSON.parse(metainfoForStratumOne)
 
                 stratumOne.push({
                     url: stratumOneRepository._baseURL,
@@ -69,7 +68,7 @@ repository.connect().then(() => {
                     health : repositoryState,
                     id: i++,
                     publishedTimestamp: publishedTimestamp,
-                    name: stratumOneRepository._baseURL + "/info/v1/meta.json",
+                    name: metainfoForStratumOneJson.organisation,
                     location: ''
                 });
 
@@ -103,7 +102,7 @@ repository.connect().then(() => {
                     revision: repositoryRevision,
                     publishedTimestamp:repositoryPublishedTimestamp
                 };
-                newJson.recommendedStratum1 = stratumOne;
+                newJson.recommendedStratum1s = stratumOne;
                 newJson.custom = metainfoJson.custom;
                 newJson.health = healthStratumOne;
                 newJson.oldestRevisionStratumOne = Math.min(...stratumOneAllRevision);
