@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "server": "babel-node ./cvmfs/cvmfs.js",
+    "server": "nodemon --exec babel-node ./cvmfs/server.js",
     "test": "mocha --require @babel/register ./test/test.js"
   },
   "devDependencies": {
@@ -24,6 +24,7 @@
     "mocha": "^6.2.0",
     "node-localstorage": "^1.3.1",
     "node-rsa": "^1.0.5",
+    "nodemon": "^1.19.1",
     "pako": "^1.0.10",
     "xmlhttprequest": "^1.8.0"
   },
