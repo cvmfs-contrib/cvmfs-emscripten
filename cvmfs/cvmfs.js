@@ -1,15 +1,33 @@
 import { Repository } from "./repo";
 import express from 'express';
-const fs = require('fs');
+// const fs = require('fs');
+const bodyParser = require('body-parser');
 
 const app = express();
+// for parsing application/json
+app.use(bodyParser.json()); 
+app.use(bodyParser.urlencoded({ extended: false }));
+
+//enable CORS
+ app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+ });
 
 // TODO: Promise -> then chain
 // http://cvmfs-stratum-one.cern.ch/cvmfs/cms.cern.ch
-const repositoryWebsite = 'http://cvmfs-stratum-one.cern.ch/cvmfs';
-const repositoryName = 'atlas.cern.ch';
+let repositoryWebsite = 'http://cvmfs-stratum-one.cern.ch/cvmfs';
+let repositoryName = 'atlas.cern.ch';
 // const repositoryName = 'atlas-nightlies.cern.ch';
 // const repositoryName = 'alice-ocdb.cern.ch';
+
+app.post('/api/details', (req, res) => {
+    repositoryName = req.body.name;
+    repositoryWebsite = req.body.website
+    console.log("repositoryName", repositoryName);
+    console.log("repositoryWebsite", repositoryWebsite);
+});
 
 const repository = new Repository(repositoryWebsite, repositoryName);
 
@@ -22,11 +40,11 @@ repository.connect().then(() => {
     const repositoryPublishedTimestamp = repository.getPublishedTimestamp();
 
     console.log('------------------------------------------------------------------');
-    console.log(manifest);
-    console.log(manifest.rootHash);
+    // console.log(manifest);
+    // console.log(manifest.rootHash);
     // console.log(whitelist);
     // console.log(repository.getCertificate());
-    console.log(metainfoJson);
+    // console.log(metainfoJson);
 
     let newJson = {};
     let recommendedStratumOne = '';
@@ -40,10 +58,10 @@ repository.connect().then(() => {
     let hashAlgorithm = '';
 
     for (const key of metainfoJson['recommended-stratum1s']){
-        console.log("key", key);
+        // console.log("key", key);
         recommendedStratumOne = key.replace(`/${repositoryName}`, '').trim();
         const stratumOneRepository = new Repository(recommendedStratumOne, repositoryName)
-            console.log("OUT recommendedStratumOne",recommendedStratumOne);
+            // console.log("OUT recommendedStratumOne",recommendedStratumOne);
             
             stratumOneRepository.connect().then(() => {
                 // console.log("IN stratumOneRepository", stratumOneRepository);
@@ -120,13 +138,13 @@ repository.connect().then(() => {
 
                 let jsonStr = JSON.stringify(newJson);
 
-                fs.writeFile('metainfofile.json', jsonStr, 'utf8', (err) => {
-                    if(err) {
-                        console.log(err);
-                    };
-                    console.log("File has been created");
-                });
-                console.log("newJson", newJson);
+                // fs.writeFile('metainfofile.json', jsonStr, 'utf8', (err) => {
+                //     if(err) {
+                //         console.log(err);
+                //     };
+                //     console.log("File has been created");
+                // });
+                // console.log("newJson", newJson);
             });        
     };
 
@@ -135,7 +153,7 @@ repository.connect().then(() => {
 
         res.json(repositoryJson);
       });
-      
+
       const port = 5000;
       
       app.listen(port, () => `Server running on port ${port}`);
