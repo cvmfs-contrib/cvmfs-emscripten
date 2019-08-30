@@ -1,15 +1,5 @@
 import { Repository } from "./repo";
 
-
-// TODO: Promise -> then chain
-// http://cvmfs-stratum-one.cern.ch/cvmfs/cms.cern.ch
-// let repositoryWebsite = 'http://cvmfs-stratum-one.cern.ch/cvmfs';
-// let repositoryName = 'atlas.cern.ch';
-// const repositoryName = 'atlas-nightlies.cern.ch';
-// const repositoryName = 'alice-ocdb.cern.ch';
-
-
-
 export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
 
     let repository = new Repository(repositoryWebsite, repositoryName);
@@ -22,7 +12,7 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
     const repositoryRevision = repository.getRevision();
     const repositoryPublishedTimestamp = repository.getPublishedTimestamp();
 
-    console.log('------------------------------------------------------------------');
+    // console.log('------------------------------------------------------------------');
     // console.log(manifest);
     // console.log(manifest.rootHash);
     // console.log(whitelist);
@@ -41,15 +31,12 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
     let hashAlgorithm = '';
 
     for (const key of metainfoJson['recommended-stratum1s']) {
-        // console.log("key", key);
+        
         recommendedStratumOne = key.replace(`/${repositoryName}`, '').trim();
         const stratumOneRepository = new Repository(recommendedStratumOne, repositoryName)
-        // console.log("OUT recommendedStratumOne",recommendedStratumOne);
 
         await stratumOneRepository.connect();
 
-        // console.log("IN stratumOneRepository", stratumOneRepository);
-        // console.log("IN recommendedStratumOne",stratumOneRepository._baseURL);
         revision = stratumOneRepository.getRevision();
         publishedTimestamp = stratumOneRepository.getPublishedTimestamp();
         // Assign state of repository
@@ -84,7 +71,7 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
         } else if (stratumOne.find(x => x.health.includes('green') && !x.health.includes('yellow') && !x.health.includes('red'))) {
             healthStratumOne = 'green';
         }
-
+        // Check algorithm
         if (manifest.rootHash.includes("rmd160")) {
             hashAlgorithm = "rmd160";
         } else if (manifest.rootHash.includes("shake128")) {
@@ -92,7 +79,7 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
         } else {
             hashAlgorithm = "SHA1";
         }
-
+        // Create json for frontend application
         newJson.administrator = metainfoJson.administrator;
         newJson.email = metainfoJson.email;
         newJson.organisation = metainfoJson.organisation;
@@ -114,36 +101,10 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
             manifest: '',
             whitelist: '',
         };
-        // newJson.rootHash = manifest.rootHash;
-        // newJson.hashAlgorithm = hashAlgorithm;
-
+        // newJson.rootHash = manifest.rootHash; 
+        // newJson.hashAlgorithm = hashAlgorithm; 
         newJson.rootHash = manifest.catalogHash.downloadHandle;
         newJson.hashAlgorithm = manifest.catalogHash.algorithm;
-
-        // console.log("stratumOneAllRevision", stratumOneAllRevision);
-
-        // let jsonStr = JSON.stringify(newJson);
-
-        // fs.writeFile('metainfofile.json', jsonStr, 'utf8', (err) => {
-        //     if(err) {
-        //         console.log(err);
-        //     };
-        //     console.log("File has been created");
-        // });
-        // console.log("newJson", newJson); 
     };
-
-    // console.log("newJson", newJson);
     return newJson;
-
-    // app.get('/api', (req, res) => {
-    //     const repositoryJson =  newJson;
-
-    //     res.json(repositoryJson);
-    // });
-
-    // const port = 5000;
-
-    // app.listen(port, () => `Server running on port ${port}`);
-    // console.log('------------------------------------------------------------------');
 }
