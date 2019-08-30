@@ -68,37 +68,7 @@ export class Retriever {
   }
 
   async download(url) {
-    // let responseText = this.cache.get(url);
-
-    // if (responseText === null) {
       const data = await this.httpGet(url);
-      const useSpan = function(callback) {
-        // console.log("Display url inside useSpan: ", url)
-        let spawnProcess = spawn('/bin/sh', [ '-c', `curl ${url} | base64 -w0` ])
-        let result = '';
-
-        spawnProcess.stdout.on('data', (data) => {
-          result += data.toString()
-        });
-
-        spawnProcess.on('close', function() {
-          return callback(result);
-        });
-      }
-
-      const saveCache = (result) => {
-        // console.log("Inside url", url);
-        // console.log("Inside result", result);
-        this.cache.set(url, result);
-      }
-
-      // await useSpan(saveCache);
-      // responseText = data;
-    // } 
-    // else {
-      // console.log('Using cached value for URL', url)
-    // }
-    // return responseText;
     return data;
   };
 
