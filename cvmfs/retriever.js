@@ -2,9 +2,8 @@
 
 import { get } from 'http';
 import { Readable } from 'stream';
-import { inflateRaw } from 'zlib';
+import { inflate } from 'zlib';
 import { spawn } from 'child_process'
-import { inflate } from 'pako';
 import { X509 } from 'jsrsasign';
 import { Hash, digestString, digestHex, stringToHex } from './util';
 import { Cache } from './localcache';
@@ -248,31 +247,20 @@ export class Retriever {
     return this.parseWhitelist(data, repoName);
   }
 
-  async cvmfsInflate(input, url) {
+  async cvmfsInflate(input) {
+    input = Buffer.from(input, 'binary');
 
     return new Promise((resolve) => {
-      let spawnProcess = spawn('/bin/sh', [ '-c', `curl ${url} | cvmfs_swissknife zpipe -d` ])
-      let result = '';
-
-      spawnProcess.stdout.on('data', (data) => {
-        result += data.toString()
-      });
-
-      spawnProcess.on('close', function() {
-        resolve(result);
-      });
+      inflate(input, (err, buffer) => {
+        // console.log("input", input)
+          if (!err) {
+              // console.log(buffer.toString());
+              resolve(buffer.toString('binary'));
+          } else {
+              console.error('Error while decompressing:', err);
+          }
+        });
     });
-
-    // return new Promise((resolve) => {
-    //     inflateRaw(input, (err, buffer) => {
-    //         if (!err) {
-    //             console.log(buffer.toString());
-    //             resolve(buffer.toString());
-    //         } else {
-    //             console.error('Error while decompressing:', err);
-    //         }
-    //     });
-    // });
   }
 
   async cvmfsHash(url) {
