@@ -104,7 +104,7 @@ export class Repository {
       throw new Error('Unable to verify manifest');
     }
     
-    this._metainfo =  await this.retriever.fetchMetainfo(this._dataURL, this._manifest.metainfoHash);
+    this._metainfo =  await this.retriever.fetchMetainfo(this._dataURL, this._manifest.metainfoHash, this._manifest.certHash);
     this._revision =  this._manifest.revision;
     this._publishedTimestamp =  this._manifest.publishedTimestamp;
     this._metainfoForStratumOne =  await this.retriever.downloadMetainfoStratumOne(this._baseURL);
