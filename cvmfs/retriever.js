@@ -1,9 +1,7 @@
 'use strict';
 
 import { get } from 'http';
-import { Readable } from 'stream';
 import { inflate } from 'zlib';
-import { spawn } from 'child_process'
 import { X509 } from 'jsrsasign';
 import { Hash, digestString, digestHex, stringToHex } from './util';
 import { Cache } from './localcache';
@@ -263,47 +261,20 @@ export class Retriever {
     });
   }
 
-  // async cvmfsHash(url) {
-
-  //   return new Promise((resolve) => {
-  //     let spawnProcess = spawn('/bin/sh', [ '-c', `curl ${url} | sha1sum` ])
-  //     let hashFromCurl = '';
-
-  //     spawnProcess.stdout.on('data', (data) => {
-  //       hashFromCurl += data.toString()
-  //       console.log("hashFromCurl",hashFromCurl)
-  //     });
-
-  //     spawnProcess.on('close', () => {
-  //       hashFromCurl = hashFromCurl.replace('\n', '').replace('-', '').trim();
-  //       resolve(hashFromCurl);
-  //     });
-  //   });
-  // }
-
-
   async fetchCertificate(dataURL, certHash) {
     const data = await this.downloadCertificate(dataURL, certHash.downloadHandle);
     const dataHex = stringToHex(data);
-    // const buffer = Buffer.from(data);
     const dataHash = digestHex(dataHex, certHash.algorithm);
-    console.log("dataHash fetchCertificate", dataHash);
 
-    // TODO: Problem 2 decompression doesn't work with zlib, workaroud using cvmfs_swissknife
     const url = [dataURL, '/', certHash.downloadHandle.substr(0, 2), '/', certHash.downloadHandle.substr(2), 'X'].join('');
     const decompressedData = await this.cvmfsInflate(data, url);
-    // const fetchCertWithCurl = await this.cvmfsHash(url); //curlCertHash
-    console.log("certHash.hex", certHash.hex);
+
     if (dataHash !== certHash.hex) {
       console.log("Error: The hash sums aren't equal")
       return undefined;
     } else {
       console.log("The hash sums are equal");
     }
-
-    // const decompressedData = inflate(data);
-    // const pem = Buffer.from(decompressedData).toString('utf8');
-    // console.log("Certificate PEM: ", decompressedData);
 
     const certificate = new X509();
     certificate.readCertPEM(decompressedData);
@@ -314,22 +285,15 @@ export class Retriever {
     const data = await this.downloadMetainfo(dataURL, metainfoHash.downloadHandle);
     const url = [dataURL, '/', metainfoHash.downloadHandle.substr(0, 2), '/', metainfoHash.downloadHandle.substr(2), 'M'].join('');
     const decompressedData = await this.cvmfsInflate(data, url);
-
-    // const data1 = await this.downloadCertificate(dataURL, certHash.downloadHandle);
     const dataHex = stringToHex(data);
     const dataHash = digestHex(dataHex, certHash.algorithm);
-    console.log("dataHash fetchMetainfo", dataHash);
     
-    // const fetchCertWithCurl = await this.cvmfsHash(url); //curlCertHash
-    // console.log("fetchCertWithCurl fetchMetainfo", fetchCertWithCurl);
-    console.log("metainfoHash.hex", metainfoHash.hex);
     if (dataHash !== metainfoHash.hex) {
       console.log("Error: The metainfoHash sums aren't equal");
       return undefined;
     } else {
       console.log("The metainfoHash sums are equal metainfoHash");
     }
-
     return decompressedData;
   }
 
