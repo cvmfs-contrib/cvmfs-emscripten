@@ -21,16 +21,14 @@ app.listen(port, () => `Server running on port ${port}`);
 app.get('/api/details', async (req, res) => {
     let repositoryName = req.query.name;
     let repositoryWebsite = req.query.website
-    // console.log("repositoryName", repositoryName);
-    // console.log("repositoryWebsite", repositoryWebsite);
 
     try {
+        console.log(`Fetching repository ${repositoryName} from ${repositoryWebsite}`);
         const reposonseJSON = await getJSONfromRpository(repositoryWebsite, repositoryName);
         // console.log("reposonseJSON",reposonseJSON)
         res.json(reposonseJSON);
     } catch (error) {
         console.log(error)
-        res.status(404).send('Not found');
+        res.status(404).send(error.message);
     }
-
 });
