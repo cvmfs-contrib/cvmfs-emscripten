@@ -42,15 +42,16 @@ export class Retriever {
 
   // Only works for http:// protocol, fails with https:// URLs
   httpGet(url) {
-    return new Promise((resolve) => {
+    // TODO: Set timeout for long requests: Abort (throw Error) if response takes too long (e.g. > 1 second)
+
+    return new Promise((resolve, reject) => {
       const request = get(url);
 
       request.on('response', (res) => {
           const { statusCode } = res;
           if (statusCode !== 200) {
-              console.error('Error: Request Failed.\n' + `Status Code: ${statusCode}`);
-              res.resume();
-              return;
+              // res.resume();
+              reject(new Error(`Request failed with status code: ${statusCode} for URL ${url}`));
           }
           res.setEncoding('binary');
           let rawData = '';
@@ -65,7 +66,7 @@ export class Retriever {
   }
 
   async download(url) {
-      const data = await this.httpGet(url);
+    const data = await this.httpGet(url);
     return data;
   };
 
@@ -270,10 +271,7 @@ export class Retriever {
     const decompressedData = await this.cvmfsInflate(data, url);
 
     if (dataHash !== certHash.hex) {
-      console.log("Error: The hash sums aren't equal")
-      return undefined;
-    } else {
-      console.log("The hash sums are equal");
+      throw new Error("The hash sums aren't equal")
     }
 
     const certificate = new X509();
@@ -289,10 +287,7 @@ export class Retriever {
     const dataHash = digestHex(dataHex, certHash.algorithm);
     
     if (dataHash !== metainfoHash.hex) {
-      console.log("Error: The metainfoHash sums aren't equal");
-      return undefined;
-    } else {
-      console.log("The metainfoHash sums are equal metainfoHash");
+      throw new Error("The metainfoHash sums aren't equal");
     }
     return decompressedData;
   }
