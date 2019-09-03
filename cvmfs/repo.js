@@ -66,35 +66,42 @@ export class Repository {
         break;
       }    
     }
-    
-    console.log('isWhitelistVerified:', isWhitelistVerified);
 
     if (!isWhitelistVerified) {
-      throw new Error('Error: Unable to verify whitelist');
+      throw new Error('Unable to verify whitelist: No public key matched');
     }
     
     const now = new Date();
     if (now >= this._whitelist.expiryDate) {
-      console.log('Error: The whitelist is expired.');
-      return undefined;
+      throw new Error('The whitelist is expired.');
     }
 
     /* verify certificate fingerprint */
-    let newAlgoritm = undefined;
-    let newDownloadHandle = undefined;
+    let isCertificateFingerprintVerified = false;
 
-    const checkCertificateFingerprint = this._whitelist.certificateFingerprint.map( e => {
-      newDownloadHandle = e.downloadHandle.substring(0, e.downloadHandle.indexOf('#')).trim();
-      newAlgoritm = e.algorithm;
-      return newDownloadHandle;
-    });
-  
-    const fingerprint = digestHex(this._cert.hex, newAlgoritm);    
-  
-    if(checkCertificateFingerprint.includes(fingerprint) === false){
-      throw new Error("Unable to verify certificate");
-    }
+    for (const fingerprint of this._whitelist.certificateFingerprint) {
+
+      let fingerprintDownloadHandle = fingerprint.downloadHandle;
+      if(fingerprint.downloadHandle.includes("#")){
+        fingerprintDownloadHandle = fingerprint.downloadHandle.substring(0, fingerprint.downloadHandle.indexOf('#')).trim();        
+      }
+
+      // Bugfix for misconfigured lhcb.cern.ch and alice.cern.ch repositories, fallback to SHA1 as default
+      if(fingerprint.algorithm.trim().includes(" ")){
+        fingerprint.algorithm = 'sha1';
+      }
+      const computedFingerprint = digestHex(this._cert.hex, fingerprint.algorithm);   
         
+      if (fingerprintDownloadHandle === computedFingerprint) {
+        isCertificateFingerprintVerified = true
+        break;
+      }    
+    }
+
+    if (!isCertificateFingerprintVerified) {
+      throw new Error("Unable to verify certificate. Fingerprints don't match.");
+    }
+    
     /* verify manifest signature */
     const signature = new crypto.Signature({alg: 'SHA1withRSA'});
     signature.init(this._cert.getPublicKey());
@@ -103,7 +110,11 @@ export class Repository {
     if (!signature.verify(this._manifest.signatureHex)){
       throw new Error('Unable to verify manifest');
     }
-    
+
+    if(! this._manifest.metainfoHash) {
+      throw new Error("metainfoHash is undefined; Without metainfo we cannot proceed");
+    }
+
     this._metainfo =  await this.retriever.fetchMetainfo(this._dataURL, this._manifest.metainfoHash, this._manifest.certHash);
     this._revision =  this._manifest.revision;
     this._publishedTimestamp =  this._manifest.publishedTimestamp;
