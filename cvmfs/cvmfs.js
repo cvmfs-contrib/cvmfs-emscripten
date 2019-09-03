@@ -1,4 +1,5 @@
 import { Repository } from "./repo";
+import { isURLvalid } from "./util"
 
 export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
 
@@ -29,10 +30,16 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
     let publishedTimestamp = '';
     let stratumOneAllRevision = [];
     let hashAlgorithm = '';
-
+    
     for (const key of metainfoJson['recommended-stratum1s']) {
         
         recommendedStratumOne = key.replace(`/${repositoryName}`, '').trim();
+
+        // Check if recommendedStratumOne is a valid URL
+        if(! isURLvalid(recommendedStratumOne)) {
+            throw new Error(`Stratum 1 URL is invalid: '${recommendedStratumOne}'`);
+        }
+
         const stratumOneRepository = new Repository(recommendedStratumOne, repositoryName)
 
         await stratumOneRepository.connect();

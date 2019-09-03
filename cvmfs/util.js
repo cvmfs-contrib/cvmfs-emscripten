@@ -2,6 +2,16 @@
 
 import { jsSHA } from 'jssha';
 import { crypto } from 'jsrsasign';
+import { URL } from 'url';
+
+export function isURLvalid(url) {
+  try {
+    new URL(url);
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
 
 export function repoURL(baseURL, repoName) {
   return baseURL + '/' + repoName;
