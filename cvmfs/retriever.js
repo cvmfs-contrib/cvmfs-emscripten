@@ -42,16 +42,13 @@ export class Retriever {
 
   // Only works for http:// protocol, fails with https:// URLs
   httpGet(url) {
-    // TODO: Set timeout for long requests: Abort (throw Error) if response takes too long (e.g. > 1 second)
-
     return new Promise((resolve, reject) => {
       const request = get(url);
 
       request.on('response', (res) => {
           const { statusCode } = res;
           if (statusCode !== 200) {
-              // res.resume();
-              reject(new Error(`Request failed with status code: ${statusCode} for URL ${url}`));
+            reject(new Error(`Request failed with status code: ${statusCode} for URL ${url}`));
           }
           res.setEncoding('binary');
           let rawData = '';
@@ -283,21 +280,4 @@ export class Retriever {
     const decompressedData = inflate(data);
     return new SQL.Database(decompressedData);
   }
-
-  // async fetchChunk(data_url, hash, decompress=true, partial=false) {
-  //   let downloadHandle = hash.downloadHandle;
-  //   if (partial) {
-  //     downloadHandle += "P";
-  //   }
-  //   const data = await this.download(this.generateChunkURL(data_url, downloadHandle))
-  //   if (!this.dataIsValid(data, hash)){
-  //     console.log('Error: Data is invalid', hash, data);
-  //     return undefined;
-  //   }
-  //   if (decompress) {
-  //     return inflate(data);
-  //   } else {
-  //     return Buffer.from(data);
-  //   }
-  // }
 }

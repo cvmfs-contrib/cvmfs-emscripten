@@ -1,8 +1,7 @@
 'use strict'
 
-import { createHash } from 'crypto';
 import { crypto } from 'jsrsasign';
-import { repoURL, dataURL, digestString, digestHex, stringToHex, Hash } from './util';
+import { repoURL, dataURL, digestHex, stringToHex} from './util';
 import { Retriever } from './retriever';
 import { KeyManager } from './masterkeys';
 
@@ -48,17 +47,15 @@ export class Repository {
 
   async connect() {
     // Explained in detail: https://cvmfs.readthedocs.io/en/stable/cpt-details.html
-    
     this._manifest = await this.retriever.fetchManifest(this.manifestURL, this._repoName);
-    // console.log("this._manifest: ", this._manifest);
 
     this.catalogURL = this.retriever.generateChunkURL(this._dataURL, this._manifest.catalogHash.downloadHandle, 'C')
     this.certificateURL = this.retriever.generateChunkURL(this._dataURL, this._manifest.certHash.downloadHandle, 'X')
     this.metainfoURL = this.retriever.generateChunkURL(this._dataURL, this._manifest.metainfoHash.downloadHandle, 'M')
 
-    this._whitelist = await this.retriever.fetchWhitelist(this.whitelistURL, this._repoName);
-      
+    this._whitelist = await this.retriever.fetchWhitelist(this.whitelistURL, this._repoName);  
     this._cert =  await this.retriever.fetchCertificate(this.certificateURL, this._manifest.certHash);
+
     /* verify whitelist signature */
     let isWhitelistVerified = false;
 
@@ -92,12 +89,12 @@ export class Repository {
     for (const fingerprint of this._whitelist.certificateFingerprint) {
 
       let fingerprintDownloadHandle = fingerprint.downloadHandle;
-      if(fingerprint.downloadHandle.includes("#")){
+      if(fingerprint.downloadHandle.includes("#")) {
         fingerprintDownloadHandle = fingerprint.downloadHandle.substring(0, fingerprint.downloadHandle.indexOf('#')).trim();        
       }
 
       // Bugfix for misconfigured lhcb.cern.ch and alice.cern.ch repositories, fallback to SHA1 as default
-      if(fingerprint.algorithm.trim().includes(" ")){
+      if(fingerprint.algorithm.trim().includes(" ")) {
         fingerprint.algorithm = 'sha1';
       }
       const computedFingerprint = digestHex(this._cert.hex, fingerprint.algorithm);   
@@ -117,7 +114,7 @@ export class Repository {
     signature.init(this._cert.getPublicKey());
     signature.updateString(this._manifest.metadataHash.downloadHandle);
 
-    if (!signature.verify(this._manifest.signatureHex)){
+    if(!signature.verify(this._manifest.signatureHex)) {
       throw new Error('Unable to verify manifest');
     }
 
@@ -137,7 +134,7 @@ export class Repository {
 
   getWhitelist() {
     return this._whitelist;
-   }
+  }
 
   getCertificate() {
     return this._cert;

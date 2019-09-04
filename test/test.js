@@ -1,4 +1,4 @@
-import { strictEqual, notStrictEqual, deepStrictEqual, notDeepStrictEqual, ok } from 'assert';
+import { strictEqual, deepStrictEqual, ok } from 'assert';
 import { KeyManager } from '../cvmfs/masterkeys';
 import { KEYUTIL, BigInteger } from 'jsrsasign';
 import { stringToHex, repoURL } from '../cvmfs/util';

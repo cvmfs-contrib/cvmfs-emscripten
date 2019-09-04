@@ -76,12 +76,10 @@ export class Cache {
 
     set(key, value) {
         const buffer = Buffer.from(value);
-        const base64 = buffer.toString('base64');  // TODO: do we need to enforce binary encoding?
 
         let cached = false;
         while (!cached) {
             try {
-                // this.localStorage.setItem(key, base64);
                 this.localStorage.setItem(key, value);
                 this.index.pushFront(key);
                 cached = true;
