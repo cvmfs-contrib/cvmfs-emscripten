@@ -70,37 +70,14 @@ export class Retriever {
     return data;
   };
 
-  async downloadManifest(repo_url) {
-    const url = repo_url + '/.cvmfspublished';
-    return await this.download(url);
-  };
-
   async downloadMetainfoStratumOne(repo_url) {
     const url = repo_url + '/info/v1/meta.json';
     return await this.download(url);
   };
 
-  async downloadWhitelist(repo_url) {
-    const url = repo_url + '/.cvmfswhitelist';
-    return await this.download(url);
-  };
-
-  async downloadChunk(data_url, hash, suffix='') {
-    const url = [data_url, '/', hash.substr(0, 2), '/', hash.substr(2), suffix].join('');
-    return await this.download(url);
-  };
-
-  async downloadCertificate(data_url, hash) {
-    return await this.downloadChunk(data_url, hash, 'X');
-  };
-
-  async downloadMetainfo(data_url, hash) {
-    return await this.downloadChunk(data_url, hash, 'M');
-  };
-
-  async downloadCatalog(data_url, hash) {
-    return await this.downloadChunk(data_url, hash, 'C');
-  };
+  generateChunkURL(data_url, hash, suffix='') {
+    return [data_url, '/', hash.substr(0, 2), '/', hash.substr(2), suffix].join('');
+  }
 
   parseManifest(data, repoName) {
     // Decoding accroding to https://cvmfs.readthedocs.io/en/stable/cpt-details.html#internal-manifest-structure
@@ -188,8 +165,8 @@ export class Retriever {
     return manifest;
   }
 
-  async fetchManifest(repoURL, repoName) {
-    const manifestRaw = await this.downloadManifest(repoURL);
+  async fetchManifest(manifestURL, repoName) {
+    const manifestRaw = await this.download(manifestURL);
     return this.parseManifest(manifestRaw, repoName);
   };
 
@@ -241,8 +218,8 @@ export class Retriever {
     return whitelist;
   }
 
-  async fetchWhitelist(repoURL, repoName) {
-    const data = await this.downloadWhitelist(repoURL);
+  async fetchWhitelist(whitelistURL, repoName) {
+    const data = await this.download(whitelistURL);
     return this.parseWhitelist(data, repoName);
   }
 
@@ -262,13 +239,11 @@ export class Retriever {
     });
   }
 
-  async fetchCertificate(dataURL, certHash) {
-    const data = await this.downloadCertificate(dataURL, certHash.downloadHandle);
+  async fetchCertificate(certificateURL, certHash) {
+    const data = await this.download(certificateURL);
     const dataHex = stringToHex(data);
     const dataHash = digestHex(dataHex, certHash.algorithm);
-
-    const url = [dataURL, '/', certHash.downloadHandle.substr(0, 2), '/', certHash.downloadHandle.substr(2), 'X'].join('');
-    const decompressedData = await this.cvmfsInflate(data, url);
+    const decompressedData = await this.cvmfsInflate(data);
 
     if (dataHash !== certHash.hex) {
       throw new Error("The hash sums aren't equal")
@@ -279,10 +254,9 @@ export class Retriever {
     return certificate;
   }
 
-  async fetchMetainfo(dataURL, metainfoHash, certHash) {
-    const data = await this.downloadMetainfo(dataURL, metainfoHash.downloadHandle);
-    const url = [dataURL, '/', metainfoHash.downloadHandle.substr(0, 2), '/', metainfoHash.downloadHandle.substr(2), 'M'].join('');
-    const decompressedData = await this.cvmfsInflate(data, url);
+  async fetchMetainfo(metainfoURL, metainfoHash, certHash) {
+    const data = await this.download(metainfoURL);
+    const decompressedData = await this.cvmfsInflate(data);
     const dataHex = stringToHex(data);
     const dataHash = digestHex(dataHex, certHash.algorithm);
     
@@ -298,8 +272,8 @@ export class Retriever {
     return dataHash === hash.hex;
   }
 
-  async fetchCatalog (dataURL, catalogHash) {
-    const data = await this.downloadCatalog(dataURL, catalogHash.downloadHandle);
+  async fetchCatalog (catalogURL, catalogHash) {
+    const data = await this.download(catalogURL);
 
     if (!this.dataIsValid(data, catalogHash)) {
       console.log('Error: Data is invalid', catalogHash, data);
@@ -310,22 +284,20 @@ export class Retriever {
     return new SQL.Database(decompressedData);
   }
 
-  async fetchChunk(data_url, hash, decompress=true, partial=false) {
-    let downloadHandle = hash.downloadHandle;
-    if (partial) {
-      downloadHandle += "P";
-    }
-    const data = await this.downloadChunk(data_url, downloadHandle);
-
-    if (!this.dataIsValid(data, hash)){
-      console.log('Error: Data is invalid', hash, data);
-      return undefined;
-    }
-    
-    if (decompress) {
-      return inflate(data);
-    } else {
-      return Buffer.from(data);
-    }
-  }
+  // async fetchChunk(data_url, hash, decompress=true, partial=false) {
+  //   let downloadHandle = hash.downloadHandle;
+  //   if (partial) {
+  //     downloadHandle += "P";
+  //   }
+  //   const data = await this.download(this.generateChunkURL(data_url, downloadHandle))
+  //   if (!this.dataIsValid(data, hash)){
+  //     console.log('Error: Data is invalid', hash, data);
+  //     return undefined;
+  //   }
+  //   if (decompress) {
+  //     return inflate(data);
+  //   } else {
+  //     return Buffer.from(data);
+  //   }
+  // }
 }

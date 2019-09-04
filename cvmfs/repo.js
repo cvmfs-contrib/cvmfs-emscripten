@@ -38,17 +38,27 @@ export class Repository {
     this._repoName = repoName;
     this._repoURL = repoURL(baseURL, repoName);
     this._dataURL = dataURL(baseURL, repoName);
+
+    this.catalogURL = '';
+    this.certificateURL = '';
+    this.manifestURL = this._repoURL + '/.cvmfspublished';
+    this.metainfoURL = '';
+    this.whitelistURL = this._repoURL + '/.cvmfswhitelist';
   }
 
   async connect() {
     // Explained in detail: https://cvmfs.readthedocs.io/en/stable/cpt-details.html
     
-    this._manifest = await this.retriever.fetchManifest(this._repoURL, this._repoName);
+    this._manifest = await this.retriever.fetchManifest(this.manifestURL, this._repoName);
     // console.log("this._manifest: ", this._manifest);
-    
-    this._whitelist = await this.retriever.fetchWhitelist(this._repoURL, this._repoName);
+
+    this.catalogURL = this.retriever.generateChunkURL(this._dataURL, this._manifest.catalogHash.downloadHandle, 'C')
+    this.certificateURL = this.retriever.generateChunkURL(this._dataURL, this._manifest.certHash.downloadHandle, 'X')
+    this.metainfoURL = this.retriever.generateChunkURL(this._dataURL, this._manifest.metainfoHash.downloadHandle, 'M')
+
+    this._whitelist = await this.retriever.fetchWhitelist(this.whitelistURL, this._repoName);
       
-    this._cert =  await this.retriever.fetchCertificate(this._dataURL, this._manifest.certHash);
+    this._cert =  await this.retriever.fetchCertificate(this.certificateURL, this._manifest.certHash);
     /* verify whitelist signature */
     let isWhitelistVerified = false;
 
@@ -115,7 +125,7 @@ export class Repository {
       throw new Error("metainfoHash is undefined; Without metainfo we cannot proceed");
     }
 
-    this._metainfo =  await this.retriever.fetchMetainfo(this._dataURL, this._manifest.metainfoHash, this._manifest.certHash);
+    this._metainfo =  await this.retriever.fetchMetainfo(this.metainfoURL, this._manifest.metainfoHash, this._manifest.certHash);
     this._revision =  this._manifest.revision;
     this._publishedTimestamp =  this._manifest.publishedTimestamp;
     this._metainfoForStratumOne =  await this.retriever.downloadMetainfoStratumOne(this._baseURL);
