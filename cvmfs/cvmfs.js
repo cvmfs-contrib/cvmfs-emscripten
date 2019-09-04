@@ -103,10 +103,11 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
         newJson.oldestRevisionStratumOne = Math.min(...stratumOneAllRevision);
         newJson.whitelistExpiryDate = whitelist.expiryDate;
         newJson.download = {
-            catalog: '',
-            certificate: '',
-            manifest: '',
-            whitelist: '',
+            catalog: repository.catalogURL,
+            certificate: repository.certificateURL,
+            manifest: repository.manifestURL,
+            whitelist: repository.whitelistURL,
+            metainfo: repository.metainfoURL
         };
         // newJson.rootHash = manifest.rootHash; 
         // newJson.hashAlgorithm = hashAlgorithm; 
