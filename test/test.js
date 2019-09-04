@@ -102,7 +102,7 @@ describe('stringToHex', function () {
             const url = repoURL(baseURL, repoName);
 
             const retriever = new Retriever();
-            const manifestRaw = await retriever.downloadManifest(url);
+            const manifestRaw = await retriever.download(url + '/.cvmfspublished');
 
             let signature = manifestRaw.substr(manifestRaw.search('--') + 3 /*(--\n)*/);
             signature = signature.substr(signature.search('\n') + 1 /*\n*/);
