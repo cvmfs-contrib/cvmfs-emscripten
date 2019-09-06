@@ -1,5 +1,6 @@
 import { Repository } from "./repo";
-import { isURLvalid } from "./util"
+import { isURLvalid, lookupIPfromURL } from "./util";
+import { lookup } from "geoip-lite";
 
 export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
 
@@ -58,6 +59,9 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
         const metainfoForStratumOne = stratumOneRepository.getMetainfoForStratumOne();
         const metainfoForStratumOneJson = JSON.parse(metainfoForStratumOne)
 
+        const ip = await lookupIPfromURL(stratumOneRepository._baseURL);
+        const geo = await lookup(ip);
+
         stratumOne.push({
             url: stratumOneRepository._baseURL,
             revision: revision,
@@ -65,7 +69,7 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
             id: i++,
             publishedTimestamp: publishedTimestamp,
             name: metainfoForStratumOneJson.organisation,
-            location: ''
+            location: geo
         });
 
         stratumOneAllRevision.push(revision);
