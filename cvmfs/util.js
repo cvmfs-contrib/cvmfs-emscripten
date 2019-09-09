@@ -29,15 +29,15 @@ export function stringToHex(input) {
 
 export class Hash {
   constructor(downloadHandle){
-    this.downloadHandle = downloadHandle;
-    const hashLength = downloadHandle.search('-');
+    this.downloadHandle = (downloadHandle.indexOf('#') < 0) ? downloadHandle : downloadHandle.substring(0, downloadHandle.indexOf('#')).trim();
+    const hashLength = this.downloadHandle.search('-');
 
     if (hashLength === -1) {
-      this.hex = downloadHandle;
+      this.hex = this.downloadHandle;
       this.algorithm = 'sha1';
     } else {
-      this.hex = downloadHandle.substring(0, hashLength);
-      this.algorithm = downloadHandle.substring(hashLength + 1);
+      this.hex = this.downloadHandle.substring(0, hashLength);
+      this.algorithm = this.downloadHandle.substring(hashLength + 1);
   
       if (this.algorithm === 'rmd160') {
         this.algorithm = 'ripemd160';
