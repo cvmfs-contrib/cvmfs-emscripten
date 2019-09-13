@@ -102,10 +102,6 @@ export class Repository {
         fingerprintDownloadHandle = fingerprint.downloadHandle.substring(0, fingerprint.downloadHandle.indexOf('#')).trim();        
       }
 
-      // Bugfix for misconfigured lhcb.cern.ch and alice.cern.ch repositories, fallback to SHA1 as default
-      if(fingerprint.algorithm.trim().includes(" ")) {
-        fingerprint.algorithm = 'sha1';
-      }
       const computedFingerprint = digestHex(this._cert.hex, fingerprint.algorithm);   
         
       if (fingerprintDownloadHandle === computedFingerprint) {
