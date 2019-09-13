@@ -48,7 +48,11 @@ export class Repository {
   async connect() {
     // Explained in detail: https://cvmfs.readthedocs.io/en/stable/cpt-details.html
     this._manifest = await this.retriever.fetchManifest(this.manifestURL, this._repoName);
-
+    // console.log("this._manifest", this._manifest);
+    if(! this._manifest.metainfoHash) {
+      throw new Error("metainfoHash is undefined; Without metainfo we cannot proceed");
+    }
+    
     this.catalogURL = this.retriever.generateChunkURL(this._dataURL, this._manifest.catalogHash.downloadHandle, 'C')
     this.certificateURL = this.retriever.generateChunkURL(this._dataURL, this._manifest.certHash.downloadHandle, 'X')
     this.metainfoURL = this.retriever.generateChunkURL(this._dataURL, this._manifest.metainfoHash.downloadHandle, 'M')
