@@ -108,10 +108,10 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
         newJson.whitelistExpiryDate = whitelist.expiryDate;
         newJson.download = {
             catalog: repository.catalogURL,
-            certificate: repository.certificateURL,
+            certificate: repository.certificateString,
             manifest: repository.manifestURL,
             whitelist: repository.whitelistURL,
-            metainfo: repository.metainfoURL
+            metainfo: JSON.stringify(metainfoJson)
         };
         // newJson.rootHash = manifest.rootHash; 
         // newJson.hashAlgorithm = hashAlgorithm; 

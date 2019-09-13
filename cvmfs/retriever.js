@@ -2,7 +2,6 @@
 
 import { get } from 'http';
 import { inflate } from 'zlib';
-import { X509 } from 'jsrsasign';
 import { Hash, digestString, digestHex, stringToHex } from './util';
 import { Cache } from './localcache';
 
@@ -245,10 +244,7 @@ export class Retriever {
     if (dataHash !== certHash.hex) {
       throw new Error("The hash sums aren't equal")
     }
-
-    const certificate = new X509();
-    certificate.readCertPEM(decompressedData);
-    return certificate;
+    return decompressedData;
   }
 
   async fetchMetainfo(metainfoURL, metainfoHash, certHash) {

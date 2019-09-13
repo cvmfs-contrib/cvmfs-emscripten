@@ -4,6 +4,7 @@ import { crypto } from 'jsrsasign';
 import { repoURL, dataURL, digestHex, stringToHex} from './util';
 import { Retriever } from './retriever';
 import { KeyManager } from './masterkeys';
+import { X509 } from 'jsrsasign';
 
 // Bit flags
 export const ENTRY_TYPE = Object.freeze({
@@ -58,7 +59,11 @@ export class Repository {
     this.metainfoURL = this.retriever.generateChunkURL(this._dataURL, this._manifest.metainfoHash.downloadHandle, 'M')
 
     this._whitelist = await this.retriever.fetchWhitelist(this.whitelistURL, this._repoName);  
-    this._cert =  await this.retriever.fetchCertificate(this.certificateURL, this._manifest.certHash);
+    this.certificateString = await this.retriever.fetchCertificate(this.certificateURL, this._manifest.certHash);
+
+    this._cert = new X509();
+    this._cert.readCertPEM(this.certificateString);
+
 
     /* verify whitelist signature */
     let isWhitelistVerified = false;
