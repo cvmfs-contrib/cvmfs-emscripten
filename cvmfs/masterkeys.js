@@ -79,7 +79,20 @@ export class KeyManager {
       wZ9XeYDzipVbMc1zaLEK0slE+bm2ge/Myvuj/rpYKT+6qzbasQg62abGFuOrjgKI\
       X4/BVnilkhUfH6ssRKw4yehlKG1M5KJje2+y+iVvLbfoaw3g1Sjrf4p3Gq+ul7AC\
       PwIDAQAB\
+      -----END PUBLIC KEY-----',
+      
+      /* DESY */
+      
+      '-----BEGIN PUBLIC KEY-----\
+      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3pgrEIimdCPWG9cuhQ0d\
+      ZWfYxvHRz5hL4HvQlmvikLIlHxs2EApnGyAWdaHAeQ4IiY+JXQnGsS8e5Gr2cZRb\
+      Y6Ya19GrjMY1wv8fc+uU9kXp7TbHpl3mSQxERG4+wqosN3+IUaPHdnWGP11idOQB\
+      I0HsJ7PTRk9quFjx1ppkVITZN07+OdGBIzLK6SyDjy49IfL6DVZUH/Oc99IiXg6E\
+      NDN2UecnnjDEmcvQh2UjGSQ+0NHe36ttQKEnK58GvcSj2reUEaVKLRvPcrzT9o7c\
+      ugxcbkBGB3VfqSgfun8urekGEHx+vTNwu8rufBkAbQYdYCPBD3AGqSg+Kgi7i/gX\
+      cwIDAQAB\
       -----END PUBLIC KEY-----'
+
 
     ];
     this._masterKeys = this._pkcs8Keys.map((pkcs_key) => KEYUTIL.getKey(pkcs_key));
