@@ -117,6 +117,7 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
         // newJson.hashAlgorithm = hashAlgorithm; 
         newJson.rootHash = manifest.catalogHash.downloadHandle;
         newJson.hashAlgorithm = manifest.catalogHash.algorithm;
+        newJson.expiryDate = repository.expiryDate;
     };
     return newJson;
 }

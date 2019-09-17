@@ -44,6 +44,7 @@ export class Repository {
     this.manifestURL = this._repoURL + '/.cvmfspublished';
     this.metainfoURL = '';
     this.whitelistURL = this._repoURL + '/.cvmfswhitelist';
+    this.expiryDate = true;
   }
 
   async connect() {
@@ -89,7 +90,8 @@ export class Repository {
     
     const now = new Date();
     if (now >= this._whitelist.expiryDate) {
-      throw new Error('The whitelist is expired.');
+      // throw new Error('The whitelist is expired.');
+      this.expiryDate = false;
     }
 
     /* verify certificate fingerprint */
