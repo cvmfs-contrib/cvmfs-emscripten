@@ -48,11 +48,17 @@ export async function getJSONfromRpository(repositoryWebsite, repositoryName) {
         revision = stratumOneRepository.getRevision();
         publishedTimestamp = stratumOneRepository.getPublishedTimestamp();
         // Assign state of repository
-        if (repositoryRevision === revision) {
+        if ( repositoryRevision === revision & 
+             repositoryPublishedTimestamp === publishedTimestamp 
+           ) {
             repositoryState = 'green';
-        } else if (repositoryRevision === revision + 1) {
+        } else if (( repositoryRevision === revision + 1 | repositoryRevision === revision + 2 ) & 
+                     repositoryPublishedTimestamp - 30 * 60 < publishedTimestamp
+                  ) {
             repositoryState = 'yellow';
-        } else if (repositoryRevision !== revision) {
+        } else if ( repositoryRevision !== revision &
+                    repositoryPublishedTimestamp - 30 * 60 > publishedTimestamp
+                  ) {
             repositoryState = 'red';
         };
 
