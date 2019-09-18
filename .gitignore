@@ -6,3 +6,4 @@ cvmfs.js
 cache/
 .vscode
 metainfofile.json
+.env

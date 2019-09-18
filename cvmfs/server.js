@@ -1,5 +1,6 @@
 import { getJSONfromRpository } from './cvmfs';
 import express from 'express';
+require('dotenv').config();
 
 const bodyParser = require('body-parser');
 
@@ -16,10 +17,10 @@ app.use(function (req, res, next) {
     next();
 });
 
-const port = 5000;
+const port = process.env.PORT
 app.listen(port, () => `Server running on port ${port}`);
 
-app.get('/api/details', async (req, res) => {
+app.get(process.env.API, async (req, res) => {
     let repositoryName = req.query.name;
     let repositoryWebsite = req.query.website
 
