@@ -6,6 +6,7 @@ I had to make a number of modifications.
 ## How to run project
 * You have to "Clone or download" this project.
 * install all project dependencies with `npm install`
+* create a .env file in the root directory with variables from `example.env`
 * start server with `npm run server`
 
 ## How to run test
